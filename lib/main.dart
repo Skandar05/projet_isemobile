@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:test/providers/student_provider.dart';
+
 
 import 'providers/auth_provider.dart';
-import 'screens/Auth.dart';
+import 'Screens/Auth/Auth.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => StudentProvider()..loadStudent()),
+        ChangeNotifierProvider( create: (_) => AuthProvider(), child: const MyApp(), ),
+      ],
       child: const MyApp(),
     ),
   );

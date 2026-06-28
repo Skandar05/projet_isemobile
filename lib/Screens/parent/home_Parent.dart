@@ -2,19 +2,26 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:test/Screens/Auth/Auth.dart';
+import 'package:test/Screens/DashboardPage.dart';
+import 'package:test/providers/student_provider.dart';
 
-import '../providers/auth_provider.dart';
 
-class HomeAScreen extends StatefulWidget {
-  const HomeAScreen({super.key});
+import '../../providers/auth_provider.dart';
+
+class HomeParent extends StatefulWidget {
+  const HomeParent({super.key});
 
   @override
-  State<HomeAScreen> createState() => _HomeAScreenState();
+  State<HomeParent> createState() => _HomeParentState();
 }
 
-class _HomeAScreenState extends State<HomeAScreen> {
+class _HomeParentState extends State<HomeParent> {
   bool _isLoading = false;
   List<dynamic> _students = [];
+  List<dynamic> _classes = [];
+
 
   @override
   void initState() {
@@ -25,62 +32,132 @@ class _HomeAScreenState extends State<HomeAScreen> {
   }
 
   Future<void> _fetchStudents() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final idPersonne = authProvider.idPersonne;
+  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  final idPersonne = authProvider.idPersonne;
 
-    if (idPersonne == null) {
-      // Fallback data for testing if idPersonne is null
+  if (idPersonne == null) {
+    debugPrint('idPersonne is null. Cannot fetch students.');
+    return;
+  }
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final response = await http.get(
+      Uri.parse(
+        'http://apiserv.ise-college-lycee.com:8415/GeteleveParent/$idPersonne',
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+
       setState(() {
-        _students = [
-          {"id": 8521, "Nomfr": "TEST", "Prenomfr": "Test", "Civilite": 1}
-        ];
+        _students = data;
       });
-      return;
+
+      if (_students.isNotEmpty) {
+        _getclassEtudiant();
+      }
+
+    } else {
+      throw Exception('Failed to load students');
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+  } catch (e) {
+    debugPrint('Error fetching students: $e');
 
-    try {
-      final response = await http.get(
-        Uri.parse('http://apiserv.ise-college-lycee.com:8415/GeteleveParent/$idPersonne'),
-      );
+  } finally {
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          _students = data.isNotEmpty ? data : [
-            {"id": 8521, "Nomfr": "TEST", "Prenomfr": "Test", "Civilite": 1}
-          ];
-        });
-      } else {
-        throw Exception('Failed to load students');
-      }
-    } catch (e) {
-      debugPrint('Error fetching students: $e');
-      // Fallback on error so the interface is still functional
-      setState(() {
-        _students = [
-          {"id": 8521, "Nomfr": "TEST", "Prenomfr": "Test", "Civilite": 1}
-        ];
-      });
-    } finally {
+    if (mounted) {
       setState(() {
         _isLoading = false;
       });
     }
   }
+}
+  Future<void> _getclassEtudiant() async {
 
-  String _getStudentClass(String firstName, String lastName) {
-    final name = '$firstName $lastName'.toLowerCase();
-    if (name.contains('test')) {
-      return '7B1';
-    } else if (name.contains('malak')) {
-      return '4A';
-    }
-    return '7B1'; // default class
+  if (_students.isEmpty) {
+    return;
   }
+
+  final idetudiant = _students[0]['id'];
+  final studentProvider = Provider.of<StudentProvider>(
+    context,
+  listen: false,
+);
+
+  try {
+
+    final response = await http.get(
+      Uri.parse(
+        'http://apiserv.ise-college-lycee.com:8415/Getclasse/$idetudiant',
+      ),
+    );
+
+
+    if (response.statusCode == 200) {
+
+      final dynamic data = jsonDecode(response.body);
+      
+
+      if (mounted) {
+
+        setState(() {
+
+          if (data is List) {
+
+            _classes = data;
+
+          } 
+          else if (data is Map<String, dynamic>) {
+
+            _classes = [data];
+
+          }
+          else {
+
+            _classes = [];
+
+          }
+
+        });
+
+      }
+      await studentProvider.setStudent(
+            eleve: _students[0]['id'].toString(),
+            classe: _classes[0]['id'].toString(),
+      );
+
+    } else {
+
+      throw Exception('Failed to load class');
+
+    }
+
+
+  } catch(e){
+
+    debugPrint("Error fetching class: $e");
+
+  }
+
+}
+String _getStudentClass() {
+
+  if (_classes.isEmpty) {
+
+    return "Classe inconnue";
+
+  }
+
+
+  return _classes[0]['nomclassefr'] ?? "Classe inconnue";
+
+} 
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +177,7 @@ class _HomeAScreenState extends State<HomeAScreen> {
               Row(
                 children: [
                   // Grid Menu Button
+                  
                   Container(
                     width: 44,
                     height: 44,
@@ -114,6 +192,16 @@ class _HomeAScreenState extends State<HomeAScreen> {
                         ),
                       ],
                     ),
+                    child: InkWell(
+                    borderRadius: BorderRadius.circular(50),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AuthScreen(),
+                        ),
+                      );
+                    },
                     child: const Center(
                       child: Icon(
                         Icons.grid_view_rounded,
@@ -122,6 +210,7 @@ class _HomeAScreenState extends State<HomeAScreen> {
                       ),
                     ),
                   ),
+                ),
                   const Spacer(),
                   // Notification Bell Button
                   Container(
@@ -164,12 +253,16 @@ class _HomeAScreenState extends State<HomeAScreen> {
               ),
               const SizedBox(height: 24),
               // Greeting Title
-              const Text(
-                'Bienvenue, Pere !',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1E293B),
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) => Text(
+                  'Bienvenue, ${auth.fullName} !',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1E293B),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: 16),
@@ -186,10 +279,29 @@ class _HomeAScreenState extends State<HomeAScreen> {
                         final firstName = student['Prenomfr'] ?? '';
                         final lastName = student['Nomfr'] ?? '';
                         final studentName = '$lastName $firstName';
-                        final className = _getStudentClass(firstName, lastName);
+                        final className = _classes.isEmpty
+    ? "Chargement..."
+    : _getStudentClass();
 
-                        return Container(
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                           Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DashboardPage(
+                              ),
+                            ),
+                          );
+                        },
+
+
+
+
+
+                        child: Container(
                           margin: const EdgeInsets.only(bottom: 12),
+                        
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -204,6 +316,7 @@ class _HomeAScreenState extends State<HomeAScreen> {
                           ),
                           child: Row(
                             children: [
+                              
                               // Student Avatar
                               Container(
                                 width: 48,
@@ -223,7 +336,9 @@ class _HomeAScreenState extends State<HomeAScreen> {
                               const SizedBox(width: 16),
                               // Student Info
                               Expanded(
+                                
                                 child: Column(
+                                  
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
@@ -235,14 +350,14 @@ class _HomeAScreenState extends State<HomeAScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
+                                     Text(
                                       className,
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
                                         color: Colors.grey.shade500,
                                       ),
-                                    ),
+                                    ), 
                                   ],
                                 ),
                               ),
@@ -254,6 +369,7 @@ class _HomeAScreenState extends State<HomeAScreen> {
                               ),
                             ],
                           ),
+                        ),
                         );
                       }).toList(),
                     ),

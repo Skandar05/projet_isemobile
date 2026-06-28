@@ -1,12 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-import '../screens/home_ Parent.dart';
-import '../screens/home_Enseignant.dart';
-import '../screens/home_Pedagogique.dart';
-import '../screens/home_Eleve.dart';
+import '../screens/Parent/home_Parent.dart';
+import '../Screens/Enseignant/home_Enseignant.dart';
+import '../Screens/Pedagogique/home_Pedagogique.dart';
+import '../Screens/Eleve/home_Eleve.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
@@ -15,7 +16,12 @@ class AuthProvider extends ChangeNotifier {
   String? token;
   String? role;
 
-  static const String _authUrl = 'http://apiserv.ise-college-lycee.com:8415/api/login';
+  // Informations de la personne connectée
+  String? nomFr;
+  String? prenomFr;
+  int? civilite;
+
+  final   _baseUrl = dotenv.env['BACKEND_URL'];
 
   Future<String?> login({
     required String identifier,
@@ -24,7 +30,7 @@ class AuthProvider extends ChangeNotifier {
     errorMessage = null;
 
     if (identifier.isEmpty || password.isEmpty) {
-      errorMessage = 'Please fill in both fields.';
+      errorMessage = 'Veuillez remplir les deux champs.';
       notifyListeners();
       return null;
     }
@@ -34,7 +40,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse(_authUrl),
+        Uri.parse('$_baseUrl/api/login'),
         headers: const {
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -45,7 +51,8 @@ class AuthProvider extends ChangeNotifier {
       );
 
       if (response.statusCode != 200) {
-        errorMessage = 'Identifiant ou mot de passe incorrect (${response.statusCode}).';
+        errorMessage =
+            'Identifiant ou mot de passe incorrect (${response.statusCode}).';
         return null;
       }
 
@@ -68,6 +75,11 @@ class AuthProvider extends ChangeNotifier {
       idPersonne = payload['idpersonne'] as int?;
       role = extractedRole;
 
+      // Récupérer le nom/prénom depuis l'API Getpersonne
+      if (idPersonne != null) {
+        await _fetchPersonneInfo(idPersonne!);
+      }
+
       return extractedRole;
     } catch (error) {
       errorMessage = 'Erreur réseau : $error';
@@ -78,20 +90,65 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Appel API Getpersonne pour récupérer le nom et prénom
+  Future<void> _fetchPersonneInfo(int idPers) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/Getpersonne/$idPers'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        nomFr    = data['Nomfr']    as String?;
+        prenomFr = data['Prenomfr'] as String?;
+        civilite = data['Civilite'] as int?;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Erreur Getpersonne : $e');
+    }
+  }
+
+  /// Renvoie le nom complet formaté (Prénom NOM)
+  String get fullName {
+    final p = prenomFr ?? '';
+    final n = nomFr ?? '';
+    if (p.isEmpty && n.isEmpty) return 'Utilisateur';
+    if (p.isEmpty) return n;
+    if (n.isEmpty) return p;
+    return '$p $n';
+  }
+
+  /// Renvoie la civilité sous forme de texte
+  String get civiliteLabel {
+    switch (civilite) {
+      case 1:
+        return 'M.';
+      case 2:
+        return 'Mme';
+      default:
+        return '';
+    }
+  }
+
   Future<void> openRoleHome(BuildContext context, String role) async {
     final normalizedRole = role.trim().toUpperCase();
 
     Widget page;
     if (normalizedRole.contains('PARENT')) {
-      page = const HomeAScreen();
-    } else if (normalizedRole.contains('ENSEIGNANT') || normalizedRole.contains('ENG')) {
+      page = const HomeParent();
+    } else if (normalizedRole.contains('ENSEIGNANT') ||
+        normalizedRole.contains('ENG')) {
       page = const HomeBScreen();
-    } else if (normalizedRole.contains('USER') || normalizedRole.contains('ELEVE') || normalizedRole.contains('STUDENT')) {
+    } else if (normalizedRole.contains('USER') ||
+        normalizedRole.contains('ELEVE') ||
+        normalizedRole.contains('STUDENT')) {
       page = const HomeDScreen();
-    } else if (normalizedRole.contains('ADMIN') || normalizedRole.contains('PD') || normalizedRole.contains('PEDAGOGIQUE')) {
+    } else if (normalizedRole.contains('ADMIN') ||
+        normalizedRole.contains('PD') ||
+        normalizedRole.contains('PEDAGOGIQUE')) {
       page = const HomeCScreen();
     } else {
-      // Default fallback
       page = const HomeCScreen();
     }
 
@@ -103,15 +160,13 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic> _parseJwt(String token) {
     try {
       final parts = token.split('.');
-      if (parts.length != 3) {
-        throw Exception('Invalid token format');
-      }
+      if (parts.length != 3) throw Exception('Format de jeton invalide');
       final payload = parts[1];
-      var normalized = base64Url.normalize(payload);
+      final normalized = base64Url.normalize(payload);
       final resp = utf8.decode(base64Url.decode(normalized));
       return json.decode(resp);
     } catch (e) {
-      debugPrint('Error parsing JWT: $e');
+      debugPrint('Erreur parsing JWT: $e');
       return {};
     }
   }
