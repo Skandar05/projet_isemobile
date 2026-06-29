@@ -4,6 +4,7 @@ import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/Screens/Parent/creationRDV.dart';
 
 
+
 class RendezVousPage extends StatelessWidget {
   const RendezVousPage({super.key});
 
@@ -114,7 +115,7 @@ class RendezVousPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const CreationRDVPage(),
+                      builder: (context) => const ChooseContactScreen(),
                     ),
                   );
                 },

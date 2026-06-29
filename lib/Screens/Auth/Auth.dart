@@ -13,11 +13,14 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final showPassword = ValueNotifier<bool>(false);
+  
 
   @override
   void dispose() {
     _identifierController.dispose();
     _passwordController.dispose();
+    showPassword.dispose(); 
     super.dispose();
   }
 
@@ -89,22 +92,41 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              const _Label(text: 'Mot de passe *'),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  hintText: 'Entrez votre mot de passe',
-                  suffixIcon: Icon(Icons.visibility_off, color: Colors.grey.shade500),
-                  enabledBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: primary, width: 1.5),
-                  ),
-                ),
-              ),
+const _Label(text: 'Mot de passe *'),
+const SizedBox(height: 8),
+
+ValueListenableBuilder<bool>(
+  valueListenable: showPassword,
+  builder: (context, isVisible, _) {
+    return TextField(
+      controller: _passwordController,
+      obscureText: !isVisible,
+      decoration: InputDecoration(
+        hintText: 'Entrez votre mot de passe',
+
+        suffixIcon: IconButton(
+          icon: Icon(
+            isVisible
+                ? Icons.visibility
+                : Icons.visibility_off,
+            color: Colors.grey.shade500,
+          ),
+          onPressed: () {
+            showPassword.value = !showPassword.value;
+          },
+        ),
+
+        enabledBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey),
+        ),
+
+        focusedBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: primary, width: 1.5),
+        ),
+      ),
+    );
+  },
+),
               const SizedBox(height: 56),
               SizedBox(
                 height: 58,

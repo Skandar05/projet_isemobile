@@ -1,0 +1,195 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'student_provider.dart';
+
+class RdvProvider extends ChangeNotifier {
+  int? idParent;
+  int? idEnseignant;
+  int? classId;
+
+  List<Map<String, dynamic>> enseignants = [];
+
+
+  Future<void> loadIds(BuildContext context) async {
+    final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+
+    idParent = int.tryParse(studentProvider.idEleve ?? '');
+    classId = int.tryParse(studentProvider.idClasse ?? '');
+  }
+
+  Future<void> checkRole({
+    required String role,
+    required BuildContext context,
+  }) async {
+    await loadIds(context);
+
+    if (role == 'parent') {
+      if (classId == null) {
+        debugPrint('classId is null');
+        return;
+      }
+
+      try {
+        final response = await http.get(
+          Uri.parse(
+            'http://apiserv.ise-college-lycee.com:8415/GetEnseignantsParClasse/$classId/7',
+          ),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (response.statusCode == 200) {
+  final dynamic data = jsonDecode(response.body);
+
+  List<Map<String, dynamic>> tempList = [];
+
+  if (data is List) {
+    tempList = List<Map<String, dynamic>>.from(data);
+  } else if (data is Map<String, dynamic>) {
+    tempList = [data];
+  }
+
+  // Remove duplicates
+  final seen = <String>{};
+
+  enseignants = tempList.where((element) {
+    final key =
+        "${element['Nomfr']}_${element['Prenomfr']}_${element['Nommatierefr']}_${element['nomclassefr']}";
+
+    if (seen.contains(key)) {
+      return false; // duplicate => remove
+    }
+
+    seen.add(key);
+    return true; // keep first occurrence
+  }).toList();
+
+  notifyListeners();
+} else {
+  debugPrint('Error: ${response.statusCode}');
+}
+      } catch (e) {
+        debugPrint('Exception: $e');
+      }
+    }
+
+    else if (role == 'enseignant') {
+      debugPrint("Role enseignant not implemented yet");
+    }
+  }
+
+
+
+  Future<void> selectEnseignant(String fullName) async {
+  final String name = fullName.trim();
+
+  try {
+    final response = await http.get(
+      Uri.parse(
+        'http://apiserv.ise-college-lycee.com:8415/GetIdEnseignants/',
+      ),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+
+      final enseignant = data.firstWhere(
+        (element) =>
+            "${element['Nomfr']} ${element['Prenomfr']}".trim().toLowerCase() ==
+            name.toLowerCase(),
+        orElse: () => null,
+      );
+
+      if (enseignant != null) {
+        idEnseignant = enseignant['idenseignant'];
+
+      } else {
+        debugPrint(
+          'No enseignant found with name: $name',
+        );
+      }
+    } else {
+      debugPrint(
+        'Error fetching enseignants: ${response.statusCode}',
+      );
+    }
+  } catch (e) {
+    debugPrint(
+      'Error selecting enseignant: $e',
+    );
+  }
+
+  notifyListeners();
+
+  
+}
+
+Future<void> saveSelectedEnseignant({
+  required String id,
+  required String fullname,
+  required String matiere,
+}) async {
+
+  final prefs = await SharedPreferences.getInstance();
+
+  await prefs.setString(
+    "idEnseignant",
+    id,
+  );
+
+  await prefs.setString(
+    "enseignantFullname",
+    fullname,
+  );
+
+  await prefs.setString(
+    "matiere",
+    matiere,
+  );
+
+}
+
+
+Future<void> createRDV() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  final String? idParent = prefs.getString("idParent");
+  final String? idEnseignant = prefs.getString("idEnseignant");
+  final String? matiere = prefs.getString("matiere");
+
+  if (idParent == null || idEnseignant == null || matiere == null) {
+    debugPrint(
+      'Error: Missing required data to create RDV. idParent: $idParent, idEnseignant: $idEnseignant, matiere: $matiere',
+    );
+    return;
+  }
+
+  try {
+    final response = await http.post(
+      Uri.parse(
+        'http://apiserv.ise-college-lycee.com:8415/CreateRDV/',
+      ),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "idParent": int.parse(idParent),
+        "idEnseignant": int.parse(idEnseignant),
+        "matiere": matiere,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      debugPrint('RDV created successfully');
+    } else {
+      debugPrint('Error creating RDV: ${response.statusCode}');
+    }
+  } catch (e) {
+    debugPrint('Exception while creating RDV: $e');
+  }
+}
+
+
+
+}

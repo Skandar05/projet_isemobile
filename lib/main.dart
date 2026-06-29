@@ -3,6 +3,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:test/providers/student_provider.dart';
 
+import 'package:test/providers/Rdv_provider.dart';
+import 'package:test/Screens/parent/creationRDV.dart';
+
 
 import 'providers/auth_provider.dart';
 import 'Screens/Auth/Auth.dart';
@@ -15,6 +18,8 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => StudentProvider()..loadStudent()),
         ChangeNotifierProvider( create: (_) => AuthProvider(), child: const MyApp(), ),
+        
+        ChangeNotifierProvider(create: (_) => RdvProvider()),
       ],
       child: const MyApp(),
     ),
