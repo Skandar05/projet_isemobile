@@ -6,7 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:test/Screens/Auth/Auth.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/providers/student_provider.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/auth_provider.dart';
 
@@ -34,7 +34,12 @@ class _HomeParentState extends State<HomeParent> {
   Future<void> _fetchStudents() async {
   final authProvider = Provider.of<AuthProvider>(context, listen: false);
   final idPersonne = authProvider.idPersonne;
+  final prefs = await SharedPreferences.getInstance();
 
+  await prefs.setInt(
+    "idPersonne",
+    idPersonne ?? 0,
+  );
   if (idPersonne == null) {
     debugPrint('idPersonne is null. Cannot fetch students.');
     return;

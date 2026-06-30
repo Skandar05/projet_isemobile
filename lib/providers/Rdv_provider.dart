@@ -152,42 +152,42 @@ Future<void> saveSelectedEnseignant({
 
 }
 
+Future<void> createRDV({
+  required int idParent,
+  required int idEnseignant,
+  required String date,
+  required String temp,
+  required String motif,
 
-Future<void> createRDV() async {
-  final prefs = await SharedPreferences.getInstance();
+}) async {
 
-  final String? idParent = prefs.getString("idParent");
-  final String? idEnseignant = prefs.getString("idEnseignant");
-  final String? matiere = prefs.getString("matiere");
 
-  if (idParent == null || idEnseignant == null || matiere == null) {
-    debugPrint(
-      'Error: Missing required data to create RDV. idParent: $idParent, idEnseignant: $idEnseignant, matiere: $matiere',
-    );
-    return;
-  }
+  final debutTemp = temp.split('-')[0];
+  final finTemp = temp.split('-')[1];
+  
 
-  try {
+  try{
     final response = await http.post(
-      Uri.parse(
-        'http://apiserv.ise-college-lycee.com:8415/CreateRDV/',
-      ),
+      Uri.parse('http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$idParent/7'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        "idParent": int.parse(idParent),
-        "idEnseignant": int.parse(idEnseignant),
-        "matiere": matiere,
+        "id_enseignant": idEnseignant,
+        "date": date,
+        "heureDebut": debutTemp,
+        "heureFin": finTemp,
+        "motif": motif,
+        
       }),
     );
-
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       debugPrint('RDV created successfully');
     } else {
-      debugPrint('Error creating RDV: ${response.statusCode}');
+      debugPrint('Failed to create RDV: ${response.statusCode}');
     }
-  } catch (e) {
-    debugPrint('Exception while creating RDV: $e');
+  }catch(e){
+    debugPrint('Error creating RDV: $e');
   }
+
 }
 
 
