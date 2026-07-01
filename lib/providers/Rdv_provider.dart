@@ -200,12 +200,19 @@ Future<void> createRDV({
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      
+      final dynamic data = jsonDecode(response.body);
 
-      return data
-          .map((rdv) => rdv as Map<String, dynamic>)
-          .toList();
+      if (data is List) {
+        return data
+            .map((rdv) => rdv as Map<String, dynamic>)
+            .toList();
+      }
+
+      if (data is Map<String, dynamic>) {
+        return [data];
+      }
+
+      return [];
     } else {
       debugPrint('Failed to fetch parent RDVs: ${response.statusCode}');
       return [];
