@@ -428,30 +428,40 @@ class _RendezVousPageState extends State<RendezVousPage> {
               Row(
                 children: [
                   Expanded(
-                      child: statusCard(
-                          _rdvs.where((rdv) {
-                            final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-                            return _statusLabel(status) == 'En attente';
-                          }).length.toString(),
-                          "En attente", Colors.orange.shade50,
-                          Colors.orange)),
+                    child: statusCard(
+                      _rdvs.where((rdv) {
+                        final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
+                        return _statusLabel(status) == 'En attente';
+                      }).length.toString(),
+                      "En attente",
+                      Colors.orange.shade200,
+                      Colors.orange.shade800,
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
-                      child: statusCard(
-                          _rdvs.where((rdv) {
-                            final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-                            return _statusLabel(status) == 'Accepté';
-                          }).length.toString(),
-                          "Acceptés", Colors.green.shade50,
-                          Colors.green)),
+                    child: statusCard(
+                      _rdvs.where((rdv) {
+                        final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
+                        return _statusLabel(status) == 'Accepté';
+                      }).length.toString(),
+                      "Acceptés",
+                      Colors.green.shade200,
+                      Colors.green.shade800,
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
-                      child: statusCard(
-                          _rdvs.where((rdv) {
-                            final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-                            return _statusLabel(status) == 'Refusé';
-                          }).length.toString(),
-                          "Refusés", Colors.red.shade50, Colors.red)),
+                    child: statusCard(
+                      _rdvs.where((rdv) {
+                        final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
+                        return _statusLabel(status) == 'Refusé';
+                      }).length.toString(),
+                      "Refusés",
+                      Colors.red.shade200,
+                      Colors.red.shade800,
+                    ),
+                  ),
                 ],
               ),
 
@@ -463,6 +473,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
                 child: Row(
                   children: _statusFilters.map((filter) {
@@ -475,10 +486,14 @@ class _RendezVousPageState extends State<RendezVousPage> {
                           });
                         },
                         child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: selected ? primary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
+                            color: selected ? primary : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: selected ? primary : Colors.transparent,
+                            ),
                           ),
                           child: Center(
                             child: Text(
@@ -559,20 +574,45 @@ class _RendezVousPageState extends State<RendezVousPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(15),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: bg.withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            height: 4,
+            width: 40,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          const SizedBox(height: 16),
           Text(
             count,
             style: TextStyle(
-                fontSize: 25, fontWeight: FontWeight.bold, color: textColor),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
           ),
+          const SizedBox(height: 4),
           Text(
             title,
-            style: TextStyle(color: textColor),
-          )
+            style: TextStyle(
+              color: Colors.grey.shade800,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
