@@ -1,12 +1,86 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
-import 'package:test/Screens/Parent/creationRDV.dart';
+import 'package:test/Screens/parent/creationRDV.dart';
+import 'package:test/providers/Rdv_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 
-class RendezVousPage extends StatelessWidget {
+class RendezVousPage extends StatefulWidget {
   const RendezVousPage({super.key});
+  @override
+  State<RendezVousPage> createState() => _RendezVousPageState();
+}
+class _RendezVousPageState extends State<RendezVousPage> {
+  List<Map<String, dynamic>> _rdvs = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRdv();
+  }
+
+  Future<void> _fetchRdv() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final rdvProvider = Provider.of<RdvProvider>(context, listen: false);
+    final prefs = await SharedPreferences.getInstance();
+    final int idParent = prefs.getInt('idPersonne') ?? 0;
+    final List<Map<String, dynamic>> rdvs = await rdvProvider.getParentRDV(idParent);
+
+    if (mounted) {
+      setState(() {
+        _rdvs = rdvs;
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _formatDuration(String start, String end) {
+    if (start.isEmpty || end.isEmpty) {
+      return '30 min';
+    }
+
+    final startTime = DateTime.tryParse('2024-01-01 $start');
+    final endTime = DateTime.tryParse('2024-01-01 $end');
+
+    if (startTime == null || endTime == null) {
+      return '30 min';
+    }
+
+    final duration = endTime.difference(startTime).inMinutes;
+    return duration > 0 ? '$duration min' : '30 min';
+  }
+
+  Color _statusColor(String status) {
+    final value = status.toLowerCase();
+    if (value.contains('accept') || value.contains('accepte')) {
+      return Colors.green;
+    }
+    if (value.contains('refus') || value.contains('rej')) {
+      return Colors.red;
+    }
+    return Colors.orange;
+  }
+
+  String _statusLabel(String status) {
+    final value = status.toLowerCase();
+    if (value.contains('accept') || value.contains('accepte')) {
+      return 'Accepté';
+    }
+    if (value.contains('refus') || value.contains('rej')) {
+      return 'Refusé';
+    }
+    return 'En attente';
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -203,40 +277,50 @@ class RendezVousPage extends StatelessWidget {
               const SizedBox(height: 15),
 
               Expanded(
-                child: ListView(
-                  children: [
-                    AppointmentCard(
-            tutorName: "M. EYAT ALLAH MOLK ALARAB",
-            subject: "Mathématiques",
-            duration: "30 min",
-            date: "SAM 14 Juin",
-            time: "14:30 - 15:00",
-            scolor: Colors.green,
-            state: "accpted",
-            onTap: () => print("Card clicked"),
-          ),
-                    AppointmentCard(
-            tutorName: "M. EYAT ALLAH MOLK ALARAB",
-            subject: "Mathématiques",
-            duration: "30 min",
-            date: "SAM 14 Juin",
-            time: "14:30 - 15:00",
-            scolor: Colors.green,
-            state: "accpted",
-            onTap: () => print("Card clicked"),
-          ),
-                    AppointmentCard(
-            tutorName: "M. EYAT ALLAH MOLK ALARAB",
-            subject: "Mathématiques",
-            duration: "30 min",
-            date: "SAM 14 Juin",
-            time: "14:30 - 15:00",
-            scolor: Colors.green,
-            state: "accpted",
-            onTap: () => print("Card clicked"),
-          ),
-                  ],
-                ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _rdvs.isEmpty
+                        ? const Center(
+                            child: Text("Aucun rendez-vous pour le moment"),
+                          )
+                        : ListView.builder(
+                            itemCount: _rdvs.length,
+                            itemBuilder: (context, index) {
+                              final rdv = _rdvs[index];
+                              final date = (rdv['date'] ?? '').toString();
+                              final heureDebut =
+                                  (rdv['heureDebut'] ?? '').toString();
+                              final heureFin = (rdv['heureFin'] ?? '').toString();
+                              final motif = (rdv['motif'] ?? '').toString();
+                              final status =
+                                  (rdv['statuts'] ?? rdv['status'] ?? '')
+                                      .toString();
+                              final tutorName = (rdv['nom_enseignant'] ??
+                                          rdv['enseignant'] ??
+                                          rdv['nomEnseignant'] ??
+                                          'Enseignant')
+                                      .toString();
+                              final subject = (rdv['matiere'] ??
+                                          rdv['sujet'] ??
+                                          motif)
+                                      .toString();
+                              final duration = _formatDuration(heureDebut, heureFin);
+                              final time = heureDebut.isEmpty && heureFin.isEmpty
+                                  ? 'Heure à confirmer'
+                                  : '$heureDebut - $heureFin';
+
+                              return AppointmentCard(
+                                tutorName: tutorName,
+                                subject: subject.isEmpty ? 'Rendez-vous' : subject,
+                                duration: duration,
+                                date: date.isEmpty ? 'Date à confirmer' : date,
+                                time: time,
+                                scolor: _statusColor(status),
+                                state: _statusLabel(status),
+                                onTap: () => print('Card clicked'),
+                              );
+                            },
+                          ),
               ),
             ],
           ),

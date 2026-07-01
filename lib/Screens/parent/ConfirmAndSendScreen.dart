@@ -77,9 +77,9 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
 
                 // 🔙 Header
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     InkWell(
-                      borderRadius: BorderRadius.circular(50),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -91,31 +91,33 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                       },
                       child: const CircleAvatar(
                         backgroundColor: Colors.white,
-                        child: Icon(Icons.arrow_back),
+                        child: Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 18,
+                          color: Color(0xff1F4B8F),
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    Stack(
-                      children: const [
-                        CircleAvatar(
-                          backgroundColor: Color(0xff1F4B8F),
-                          child: Icon(Icons.notifications,
-                              color: Colors.white),
-                        ),
-                        Positioned(
-                          right: 0,
-                          child: CircleAvatar(
-                            radius: 5,
-                            backgroundColor: Colors.red,
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.notifications_none,
+                            color: Color(0xff1F4B8F),
                           ),
-                        )
+                        ),
+                        const SizedBox(width: 10),
+                        CircleAvatar(
+                          backgroundColor: const Color(0xff1F4B8F),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'lib/images/logoise.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
                       ],
-                    ),
-                    const SizedBox(width: 10),
-                    CircleAvatar(
-                      backgroundColor: const Color(0xff1F4B8F),
-                      child: const Text("ISE",
-                          style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),

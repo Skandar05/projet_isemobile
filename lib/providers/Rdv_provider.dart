@@ -190,6 +190,30 @@ Future<void> createRDV({
 
 }
 
+  Future<List<Map<String, dynamic>>> getParentRDV(int idParent) async {
+  try {
+    final response = await http.get(
+      Uri.parse(
+        'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/personne/$idParent',
+      ),
+      headers: {'Content-Type': 'application/json'},
+    );
 
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      
+
+      return data
+          .map((rdv) => rdv as Map<String, dynamic>)
+          .toList();
+    } else {
+      debugPrint('Failed to fetch parent RDVs: ${response.statusCode}');
+      return [];
+    }
+  } catch (e) {
+    debugPrint('Error fetching RDVs: $e');
+    return [];
+  }
+}
 
 }
