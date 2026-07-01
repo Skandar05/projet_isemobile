@@ -16,6 +16,19 @@ class RendezVousPage extends StatefulWidget {
 class _RendezVousPageState extends State<RendezVousPage> {
   List<Map<String, dynamic>> _rdvs = [];
   bool _isLoading = false;
+  String _selectedFilter = 'Tous';
+  static const List<String> _statusFilters = [
+    'Tous',
+    'En attente',
+    'Acceptés',
+    'Refusés',
+  ];
+
+  bool _matchesFilter(Map<String, dynamic> rdv) {
+    if (_selectedFilter == 'Tous') return true;
+    final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
+    return _statusLabel(status) == _selectedFilter;
+  }
 
   @override
   void initState() {
@@ -35,7 +48,20 @@ class _RendezVousPageState extends State<RendezVousPage> {
 
     if (mounted) {
       setState(() {
-        _rdvs = rdvs;
+        final sortedRdvs = List<Map<String, dynamic>>.from(rdvs);
+        sortedRdvs.sort((a, b) {
+          int parseId(dynamic value) {
+            if (value is int) return value;
+            if (value is String) return int.tryParse(value) ?? 0;
+            if (value is num) return value.toInt();
+            return 0;
+          }
+
+          final aId = parseId(a['id']);
+          final bId = parseId(b['id']);
+          return bId.compareTo(aId);
+        });
+        _rdvs = sortedRdvs;
         _isLoading = false;
       });
     }
@@ -439,29 +465,35 @@ class _RendezVousPageState extends State<RendezVousPage> {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: primary,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            "Tous",
-                            style: TextStyle(color: Colors.white),
+                  children: _statusFilters.map((filter) {
+                    final bool selected = _selectedFilter == filter;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedFilter = filter;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: selected ? primary : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              filter,
+                              style: TextStyle(
+                                color: selected ? Colors.white : primary,
+                                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const Expanded(
-                      child: Center(child: Text("En attente")),
-                    ),
-                    const Expanded(
-                      child: Center(child: Text("Traités")),
-                    ),
-                  ],
+                    );
+                  }).toList(),
                 ),
               ),
 
@@ -470,14 +502,15 @@ class _RendezVousPageState extends State<RendezVousPage> {
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _rdvs.isEmpty
+                    : _rdvs.where(_matchesFilter).isEmpty
                         ? const Center(
                             child: Text("Aucun rendez-vous pour le moment"),
                           )
                         : ListView.builder(
-                            itemCount: _rdvs.length,
+                            itemCount: _rdvs.where(_matchesFilter).length,
                             itemBuilder: (context, index) {
-                              final rdv = _rdvs[index];
+                              final filteredRdvs = _rdvs.where(_matchesFilter).toList();
+                              final rdv = filteredRdvs[index];
                               final date = (rdv['date'] ?? '').toString().trim();
                               final heureDebut =
                                   (rdv['heureDebut'] ?? '').toString().trim();
