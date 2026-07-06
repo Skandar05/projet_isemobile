@@ -1,25 +1,18 @@
+
 import 'package:flutter/material.dart';
+
 import 'package:provider/provider.dart';
+
+import 'package:test/Screens/Auth/Auth.dart';
+import 'package:test/screens/DashboardPage.dart';
+
 
 import '../../providers/auth_provider.dart';
 
-class HomeBScreen extends StatelessWidget {
-  const HomeBScreen({super.key});
+class HomeEnseignant extends StatelessWidget {
+  const HomeEnseignant({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return const _HomeEnseignantBody();
-  }
-}
 
-class _HomeEnseignantBody extends StatefulWidget {
-  const _HomeEnseignantBody();
-
-  @override
-  State<_HomeEnseignantBody> createState() => _HomeEnseignantBodyState();
-}
-
-class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF243B7B);
@@ -34,13 +27,70 @@ class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Header ──────────────────────────────────────────────
+              // Header Row
               Row(
                 children: [
-                  _circleIcon(Icons.grid_view_rounded, Colors.grey),
+                  // Grid Menu Button
+                  
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: InkWell(
+                    borderRadius: BorderRadius.circular(50),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AuthScreen(),
+                        ),
+                      );
+                    },
+                    child: const Center(
+                      child: Icon(
+                        Icons.grid_view_rounded,
+                        color: Colors.grey,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
                   const Spacer(),
-                  _circleIcon(Icons.notifications_none_rounded, Colors.black),
+                  // Notification Bell Button
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.black,
+                        size: 24,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 12),
+                  // School Logo
                   Container(
                     width: 44,
                     height: 44,
@@ -56,124 +106,101 @@ class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
                 ],
               ),
               const SizedBox(height: 24),
-
-              // ── Greeting ─────────────────────────────────────────────
+              // Greeting Title
               Consumer<AuthProvider>(
-                builder: (context, auth, _) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Bienvenue, ${auth.fullName} !',
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E293B),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'Espace Enseignant',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: primaryColor,
+                builder: (context, auth, _) => Text(
+                  'Bienvenue, ${auth.fullName} !',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1E293B),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              Column(
+                children: [
+                        InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                           Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DashboardPage(isTeacher: true,
+                              ),
+                            ),
+                          );
+                        },
+
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                        
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Mes classes",
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    
+                                  ],
+                                ),
+                              ),
+                              // Arrow Icon
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.grey,
+                                size: 28,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // ── Carte Enseignant ──────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.school_rounded,
-                        size: 28,
-                        color: Colors.orange.shade400,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Mon espace enseignant',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E293B),
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Gérez vos cours et devoirs',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.grey,
-                      size: 28,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // ── Actions rapides ───────────────────────────────────────
+              const SizedBox(height: 16),
+              // Grid Row of 3 Actions
               Row(
                 children: [
                   _buildQuickActionButton(
-                    label: 'Emploi du temps',
-                    emoji: '📅',
+                    context: context,
+                    label: 'Actualités',
+                    emoji: '🔔',
                     onTap: () {},
                   ),
                   const SizedBox(width: 12),
                   _buildQuickActionButton(
-                    label: 'Devoirs',
-                    emoji: '📝',
+                    context: context,
+                    label: 'Cantine',
+                    emoji: '🍴',
                     onTap: () {},
                   ),
                   const SizedBox(width: 12),
                   _buildQuickActionButton(
+                    context: context,
                     label: 'Messagerie',
                     emoji: '💬',
                     onTap: () {},
@@ -181,24 +208,84 @@ class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
                 ],
               ),
               const SizedBox(height: 28),
-
-              // ── Section Cours du jour ─────────────────────────────────
-              _buildSectionHeader(
-                title: 'Cours du jour',
-                secondaryBtnColor: secondaryBtnColor,
-                primaryColor: primaryColor,
-                onCalendar: () {},
-                onRefresh: () {},
-              ),
-              const SizedBox(height: 12),
-              _buildEmptyCard('Aucun cours planifié aujourd\'hui'),
-              const SizedBox(height: 28),
-
-              // ── Section Devoirs en attente ────────────────────────────
+              // Section Examen
               Row(
                 children: [
                   const Text(
-                    'Devoirs en attente',
+                    'Rappel examen',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Calendrier Button
+                  InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: secondaryBtnColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_month_outlined,
+                            size: 18,
+                            color: primaryColor,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Calendrier',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Refresh Button
+                  _buildSmallRefreshButton(onTap: () {}),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    'Aucun examen dans les 7 prochains jours',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              // Section Notifications
+              Row(
+                children: [
+                  const Text(
+                    'Notifications non lues',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -222,7 +309,30 @@ class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
                 ],
               ),
               const SizedBox(height: 12),
-              _buildEmptyCard('Aucun devoir en attente de correction'),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    'Aucune notification non lue',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -230,31 +340,14 @@ class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
     );
   }
 
-  Widget _circleIcon(IconData icon, Color color) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(child: Icon(icon, color: color, size: 24)),
-    );
-  }
-
   Widget _buildQuickActionButton({
+    required BuildContext context,
     required String label,
     required String emoji,
     required VoidCallback onTap,
   }) {
     const Color primaryColor = Color(0xFF243B7B);
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -274,13 +367,15 @@ class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 30)),
+              Text(
+                emoji,
+                style: const TextStyle(fontSize: 30),
+              ),
               const SizedBox(height: 8),
               Text(
                 label,
-                textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -292,87 +387,10 @@ class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
     );
   }
 
-  Widget _buildSectionHeader({
-    required String title,
-    required Color secondaryBtnColor,
-    required Color primaryColor,
-    required VoidCallback onCalendar,
-    required VoidCallback onRefresh,
-  }) {
-    return Row(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1E293B),
-          ),
-        ),
-        const Spacer(),
-        InkWell(
-          onTap: onCalendar,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: secondaryBtnColor,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_month_outlined,
-                    size: 18, color: primaryColor),
-                const SizedBox(width: 6),
-                Text(
-                  'Calendrier',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: primaryColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _buildSmallRefreshButton(onTap: onRefresh),
-      ],
-    );
-  }
-
-  Widget _buildEmptyCard(String message) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          message,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey.shade500,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSmallRefreshButton({required VoidCallback onTap}) {
     const Color secondaryBtnColor = Color(0xFFE5EDF9);
     const Color primaryColor = Color(0xFF243B7B);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -384,7 +402,11 @@ class _HomeEnseignantBodyState extends State<_HomeEnseignantBody> {
           shape: BoxShape.circle,
         ),
         child: const Center(
-          child: Icon(Icons.refresh_rounded, size: 20, color: primaryColor),
+          child: Icon(
+            Icons.refresh_rounded,
+            size: 20,
+            color: primaryColor,
+          ),
         ),
       ),
     );

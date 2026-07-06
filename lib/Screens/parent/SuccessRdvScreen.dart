@@ -33,7 +33,7 @@ class SuccessRdvScreen extends StatelessWidget {
 
                    
 
-                      const SizedBox(width: 330),
+                      const SizedBox(width: 280),
 
 
                       CircleAvatar(

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'student_provider.dart';
+import 'package:test/providers/EnseignantProvider.dart';
 
 class RdvProvider extends ChangeNotifier {
   int? idParent;
@@ -76,7 +77,10 @@ class RdvProvider extends ChangeNotifier {
     }
 
     else if (role == 'enseignant') {
-      debugPrint("Role enseignant not implemented yet");
+      Future<void> getInfoParent(BuildContext context) async {
+       final enseignantProvider =Provider.of<EnseignantProvider>(context, listen: false);
+       await enseignantProvider.getEnseignantsClasse(idEnseignant ?? 0);
+    }
     }
   }
 
@@ -222,5 +226,131 @@ Future<void> createRDV({
     return [];
   }
 }
+
+// ===== TEACHER RDV METHODS =====
+
+  Future<List<Map<String, dynamic>>> getTeacherRDV(int idTeacher) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'http://apiserv.ise-college-lycee.com:8415/getRendezvousEnseignant/$idTeacher',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+
+        if (data is List) {
+          return data
+              .map((rdv) => rdv as Map<String, dynamic>)
+              .toList();
+        }
+
+        if (data is Map<String, dynamic>) {
+          return [data];
+        }
+
+        return [];
+      } else {
+        debugPrint('Failed to fetch teacher RDVs: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Error fetching teacher RDVs: $e');
+      return [];
+    }
+  }
+
+  Future<void> acceptTeacherRDV(dynamic rdvId) async {
+    try {
+      final response = await http.put(
+        Uri.parse(
+          'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/accept',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('RDV accepted successfully');
+      } else {
+        debugPrint('Failed to accept RDV: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error accepting RDV: $e');
+    }
+  }
+
+  Future<void> rejectTeacherRDV(
+    dynamic rdvId,
+    String reason,
+    String newDate,
+    String timeStart,
+    String timeEnd,
+  ) async {
+    try {
+      final response = await http.put(
+        Uri.parse(
+          'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/reject',
+        ),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "motifRefus": reason,
+          "dateProposee": newDate,
+          "heureDebutProposee": timeStart,
+          "heureFinProposee": timeEnd,
+          "status": "rejected_with_proposal",
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('RDV rejected with proposal successfully');
+      } else {
+        debugPrint('Failed to reject RDV: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error rejecting RDV: $e');
+    }
+  }
+
+  Future<void> createTeacherRDV({
+    required int idTeacher,
+    required int idParent,
+    required String date,
+    required String timeStart,
+    required String timeEnd,
+    required String motif,
+    required int studentId,
+    required int classId,
+    String? parentName,
+    String? parentType,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('http://apiserv.ise-college-lycee.com:8415/getRendezvousEnseignant/$idTeacher'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "id_parent": idParent,
+          "id_eleve": studentId,
+          "id_classe": classId,
+          "date": date,
+          "heureDebut": timeStart,
+          "heureFin": timeEnd,
+          "motif": motif,
+          "nomParent": parentName,
+          "typeParent": parentType,
+          "status": "pending",
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('Teacher RDV created successfully');
+      } else {
+        debugPrint('Failed to create teacher RDV: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error creating teacher RDV: $e');
+    }
+  }
 
 }

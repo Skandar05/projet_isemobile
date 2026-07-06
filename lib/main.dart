@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:test/providers/student_provider.dart';
-
+import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/providers/Rdv_provider.dart';
-import 'package:test/Screens/parent/creationRDV.dart';
+
 
 
 import 'providers/auth_provider.dart';
@@ -18,7 +18,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => StudentProvider()..loadStudent()),
         ChangeNotifierProvider( create: (_) => AuthProvider(), child: const MyApp(), ),
-        
+        ChangeNotifierProvider(create: (_) => EnseignantProvider()),
         ChangeNotifierProvider(create: (_) => RdvProvider()),
       ],
       child: const MyApp(),

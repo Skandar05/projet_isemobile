@@ -9,6 +9,9 @@ class AppointmentCard extends StatelessWidget {
   final String time;
   final Color scolor;
   final VoidCallback? onTap;
+  final VoidCallback? onAccept;
+  final VoidCallback? onReject;
+  
 
   const AppointmentCard({
     super.key,
@@ -20,6 +23,8 @@ class AppointmentCard extends StatelessWidget {
     required this.state,
     required this.scolor,
     this.onTap,
+    this.onAccept,
+    this.onReject,
   });
 
   @override
@@ -28,7 +33,6 @@ class AppointmentCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       onTap: onTap,
       child: Container(
-        height: 110,
         margin: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: const Color(0xffEAF3FF),
@@ -44,118 +48,173 @@ class AppointmentCard extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Avatar
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xff123B60),
-                  size: 28,
-                ),
-              ),
-
-              const SizedBox(width: 16),
-
-              // Middle content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      tutorName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xff334155),
-                      ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Avatar
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
                     ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      "$subject : $duration",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xff334155),
-                      ),
+                    child: const Icon(
+                      Icons.person,
+                      color: Color(0xff123B60),
+                      size: 28,
                     ),
+                  ),
 
-                    const SizedBox(height: 6),
+                  const SizedBox(width: 16),
 
-                    // SAFE: no overflow anymore
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                  // Middle content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.calendar_today,
-                                size: 16, color: Color(0xff64748B)),
-                            const SizedBox(width: 6),
-                            Text(
-                              date,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xff64748B),
+                            Expanded(
+                              child: Text(
+                                tutorName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xff334155),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scolor,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                state,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          "$subject : $duration",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xff334155),
+                          ),
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            const Icon(Icons.access_time,
-                                size: 16, color: Color(0xff64748B)),
-                            const SizedBox(width: 6),
-                            Text(
-                              time,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xff64748B),
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_today,
+                                    size: 16, color: Color(0xff64748B)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  date,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xff64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.access_time,
+                                    size: 16, color: Color(0xff64748B)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  time,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xff64748B),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ],
                     ),
+                  ),
+                ],
+              ),
+              if (onAccept != null || onReject != null) ...[
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    if (onAccept != null)
+                      Expanded(
+                        child: SizedBox(
+                          height: 38,
+                          child: OutlinedButton.icon(
+                            onPressed: onAccept,
+                            icon: const Icon(Icons.check_circle_outline, size: 18),
+                            label: const Text('Accept'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.green,
+                              side: const BorderSide(color: Colors.green),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (onAccept != null && onReject != null)
+                      const SizedBox(width: 10),
+                    if (onReject != null)
+                      Expanded(
+                        child: SizedBox(
+                          height: 38,
+                          child: OutlinedButton.icon(
+                            onPressed: onReject,
+                            icon: const Icon(Icons.cancel_outlined, size: 18),
+                            label: const Text('Reject'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-              ),
-
-              const SizedBox(width: 10),
-
-              // State badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: scolor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  state,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+              ],
             ],
           ),
         ),

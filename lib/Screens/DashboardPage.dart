@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:test/screens/Parent/home_Parent.dart';
+import 'package:test/Screens/Parent/home_Parent.dart';
+import 'package:test/Screens/Enseignant/home_Enseignant.dart';
 import 'Widgets/DashboardCard.dart';
 import '../Screens/parent/rendezvous_screen.dart';
+import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
 
 class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key});
+  final bool isTeacher;
+  final String? classId;
+  final String? className;
+
+  const DashboardPage({
+    super.key,
+    this.isTeacher = false,
+    this.classId,
+    this.className,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,12 +41,13 @@ class DashboardPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(50),
                     onTap: () {
                       Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => HomeParent(
-                              ),
-                            ),
-                          );
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => isTeacher 
+                              ? const HomeEnseignant()
+                              : const HomeParent(),
+                        ),
+                      );
                     },
                     child: CircleAvatar(
                       backgroundColor: Colors.white,
@@ -47,6 +59,16 @@ class DashboardPage extends StatelessWidget {
                     ),
                   ),
 
+                  // Class info for teacher
+                  if (isTeacher && className != null)
+                    Text(
+                      className!,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: primary,
+                      ),
+                    ),
 
                   // Right icons
                   Row(
@@ -100,7 +122,7 @@ class DashboardPage extends StatelessWidget {
                   children: [
 
                     DashboardCard(
-                      title: 'Rendez_vous',
+                      title: isTeacher ? 'Rendez_vous\n(Demandes)' : 'Rendez_vous',
                       icon: Icons.schedule,
                       iconColor: const Color(0xFF5B9BD5),
 
@@ -109,7 +131,9 @@ class DashboardPage extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const RendezVousPage(),
+                            builder: (context) => isTeacher 
+                                  ? const RendezVousPage(isTeacher: true)
+                                  : const RendezVousPage(),
                           ),
                         );
 

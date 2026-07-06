@@ -23,11 +23,12 @@ class _ChooseContactScreenState extends State<ChooseContactScreen> {
     super.initState();
 
     Future.microtask(() {
-      Provider.of<RdvProvider>(context, listen: false)
+       Provider.of<RdvProvider>(context, listen: false)
           .checkRole(
             role: "parent",
             context: context,
-          );
+          ); 
+          
     });
   }
 

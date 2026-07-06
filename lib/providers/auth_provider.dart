@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 import '../screens/Parent/home_Parent.dart';
 import '../Screens/Enseignant/home_Enseignant.dart';
 import '../Screens/Pedagogique/home_Pedagogique.dart';
-import '../Screens/Eleve/home_Eleve.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
@@ -20,6 +20,7 @@ class AuthProvider extends ChangeNotifier {
   String? nomFr;
   String? prenomFr;
   int? civilite;
+  String? matiere;
 
   final   _baseUrl = dotenv.env['BACKEND_URL'];
 
@@ -73,6 +74,10 @@ class AuthProvider extends ChangeNotifier {
 
       token = jwtToken;
       idPersonne = payload['idpersonne'] as int?;
+      final prefs = await SharedPreferences.getInstance();
+      
+      await prefs.setInt('idE', idPersonne ?? 0);
+      
       role = extractedRole;
 
       // Récupérer le nom/prénom depuis l'API Getpersonne
@@ -96,12 +101,29 @@ class AuthProvider extends ChangeNotifier {
       final response = await http.get(
         Uri.parse('$_baseUrl/Getpersonne/$idPers'),
       );
+      
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        nomFr    = data['Nomfr']    as String?;
-        prenomFr = data['Prenomfr'] as String?;
-        civilite = data['Civilite'] as int?;
+
+        // The API may return a map with name fields or a list with subject info.
+        if (data is Map<String, dynamic>) {
+          nomFr = data['Nomfr'] as String?;
+          prenomFr = data['Prenomfr'] as String?;
+          civilite = data['Civilite'] as int?;
+        } else if (data is List && data.isNotEmpty) {
+          final first = data[0];
+          if (first is Map<String, dynamic>) {
+            // Example: [{"id":8465,"Nommatierefr":"arabe"}]
+            matiere = (first['Nommatierefr'] ?? first['nomMatiere'] ?? first['matiere']) as String?;
+
+            // Persist the subject so other screens can read it from SharedPreferences
+            final prefs = await SharedPreferences.getInstance();
+            if (matiere != null && matiere!.isNotEmpty) {
+              await prefs.setString('matiere', matiere!);
+            }
+          }
+        }
         notifyListeners();
       }
     } catch (e) {
@@ -139,11 +161,7 @@ class AuthProvider extends ChangeNotifier {
       page = const HomeParent();
     } else if (normalizedRole.contains('ENSEIGNANT') ||
         normalizedRole.contains('ENG')) {
-      page = const HomeBScreen();
-    } else if (normalizedRole.contains('USER') ||
-        normalizedRole.contains('ELEVE') ||
-        normalizedRole.contains('STUDENT')) {
-      page = const HomeDScreen();
+      page = const HomeEnseignant();
     } else if (normalizedRole.contains('ADMIN') ||
         normalizedRole.contains('PD') ||
         normalizedRole.contains('PEDAGOGIQUE')) {
