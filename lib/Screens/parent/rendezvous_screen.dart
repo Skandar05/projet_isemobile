@@ -2,12 +2,11 @@
 import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
+import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/Screens/parent/creationRDV.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-
 
 class RendezVousPage extends StatefulWidget {
   final bool isTeacher;
@@ -17,6 +16,7 @@ class RendezVousPage extends StatefulWidget {
   @override
   State<RendezVousPage> createState() => _RendezVousPageState();
 }
+
 class _RendezVousPageState extends State<RendezVousPage> {
   List<Map<String, dynamic>> _rdvs = [];
   bool _isLoading = false;
@@ -49,11 +49,11 @@ class _RendezVousPageState extends State<RendezVousPage> {
 
     final rdvProvider = Provider.of<RdvProvider>(context, listen: false);
     final prefs = await SharedPreferences.getInstance();
-    final int currentUserId =prefs.getInt('idPersonne') ?? 0;
+    final int currentUserId = prefs.getInt('idPersonne') ?? 0;
     final int idTeacher = prefs.getInt('idE') ?? 0;
     final List<Map<String, dynamic>> rdvs = _isTeacher
-      ? await rdvProvider.getTeacherRDV(idTeacher)
-      : await rdvProvider.getParentRDV(currentUserId);
+        ? await rdvProvider.getTeacherRDV(idTeacher)
+        : await rdvProvider.getParentRDV(currentUserId);
 
     if (mounted) {
       setState(() {
@@ -122,12 +122,14 @@ class _RendezVousPageState extends State<RendezVousPage> {
   }
 
   String _contactName(Map<String, dynamic> rdv) {
-    final teacherName = ('${rdv['nomEnseignant'] ?? rdv['enseignant'] ?? ''}'
-            ' ${rdv['prenomEnseignant'] ?? ''}')
-        .trim();
-    final parentName = ('${rdv['nomParent'] ?? rdv['parent'] ?? ''}'
-            ' ${rdv['prenomParent'] ?? ''}')
-        .trim();
+    final teacherName =
+        ('${rdv['nomEnseignant'] ?? rdv['enseignant'] ?? ''}'
+                ' ${rdv['prenomEnseignant'] ?? ''}')
+            .trim();
+    final parentName =
+        ('${rdv['nomParent'] ?? rdv['parent'] ?? ''}'
+                ' ${rdv['prenomParent'] ?? ''}')
+            .trim();
 
     if (_isTeacher) {
       return parentName.isEmpty ? 'Parent' : parentName;
@@ -140,9 +142,17 @@ class _RendezVousPageState extends State<RendezVousPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => _isTeacher
-            ? const ClasseEnseignant()
-            : const ChooseContactScreen(),
+        builder: (context) =>
+            _isTeacher ? const ClasseEnseignant() : const ChooseContactScreen(),
+      ),
+    );
+  }
+
+  void _openDisponibiliteConfiguration() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DisponibiliteConfigurationScreen(),
       ),
     );
   }
@@ -200,10 +210,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                 children: [
                   const Text(
                     'Détail du rendez-vous',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -245,7 +252,9 @@ class _RendezVousPageState extends State<RendezVousPage> {
               _detailRow(
                 icon: Icons.person,
                 title: 'Contact',
-                value: subject.isEmpty ? contactName : '$contactName • $subject',
+                value: subject.isEmpty
+                    ? contactName
+                    : '$contactName • $subject',
               ),
               const SizedBox(height: 14),
               _detailRow(
@@ -260,11 +269,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                 value: time,
               ),
               const SizedBox(height: 14),
-              _detailRow(
-                icon: Icons.school,
-                title: 'Élève',
-                value: eleveLine,
-              ),
+              _detailRow(icon: Icons.school, title: 'Élève', value: eleveLine),
               if (motif.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 _detailRow(
@@ -308,11 +313,13 @@ class _RendezVousPageState extends State<RendezVousPage> {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: valueStyle ?? const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xff253858),
-                ),
+                style:
+                    valueStyle ??
+                    const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xff253858),
+                    ),
               ),
             ],
           ),
@@ -320,7 +327,6 @@ class _RendezVousPageState extends State<RendezVousPage> {
       ],
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -331,6 +337,31 @@ class _RendezVousPageState extends State<RendezVousPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
+     floatingActionButton: _isTeacher
+    ? Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xff1F4B8F), Color(0xff3B82F6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: _openDisponibiliteConfiguration,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.add, size: 28, color: Colors.white),
+        ),
+      )
+    : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -350,9 +381,8 @@ class _RendezVousPageState extends State<RendezVousPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => DashboardPage(
-                                isTeacher: _isTeacher,
-                              ),
+                              builder: (context) =>
+                                  DashboardPage(isTeacher: _isTeacher),
                             ),
                           );
                         },
@@ -371,8 +401,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                     children: [
                       CircleAvatar(
                         backgroundColor: Colors.white,
-                        child: Icon(Icons.notifications_none,
-                            color: primary),
+                        child: Icon(Icons.notifications_none, color: primary),
                       ),
                       const SizedBox(width: 10),
                       CircleAvatar(
@@ -383,20 +412,16 @@ class _RendezVousPageState extends State<RendezVousPage> {
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) {
                               return const Center(
-                                child: Icon(
-                                  Icons.image_outlined,
-                                ),
+                                child: Icon(Icons.image_outlined),
                               );
                             },
                           ),
                         ),
-                      )
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
-
-            
 
               const SizedBox(height: 10),
 
@@ -414,45 +439,41 @@ class _RendezVousPageState extends State<RendezVousPage> {
 
               const SizedBox(height: 20),
 
-              /// BUTTON
-              Container(
-                height: 55,
-                decoration: BoxDecoration(
-                  color: primary,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primary.withOpacity(.3),
-                      blurRadius: 10,
-                    )
-                  ],
-                ),
-                child: InkWell(
-                borderRadius: BorderRadius.circular(50),
-                  onTap: _openNewRdvFlow,
-                  child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.white24,
-                        child: Icon(Icons.add, color: Colors.white),
-                      ),
-                      SizedBox(width: 10),
-                      Text(
-                        actionLabel,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      )
+              if (!_isTeacher)
+                Container(
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: primary,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(color: primary.withOpacity(.3), blurRadius: 10),
                     ],
                   ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(50),
+                    onTap: _openNewRdvFlow,
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.white24,
+                            child: Icon(Icons.add, color: Colors.white),
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            actionLabel,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              ),
-              
 
               const SizedBox(height: 15),
 
@@ -461,10 +482,15 @@ class _RendezVousPageState extends State<RendezVousPage> {
                 children: [
                   Expanded(
                     child: statusCard(
-                      _rdvs.where((rdv) {
-                        final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-                        return _statusLabel(status) == 'En attente';
-                      }).length.toString(),
+                      _rdvs
+                          .where((rdv) {
+                            final status =
+                                (rdv['statuts'] ?? rdv['status'] ?? '')
+                                    .toString();
+                            return _statusLabel(status) == 'En attente';
+                          })
+                          .length
+                          .toString(),
                       "En attente",
                       Colors.orange.shade200,
                       Colors.orange.shade800,
@@ -473,10 +499,15 @@ class _RendezVousPageState extends State<RendezVousPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: statusCard(
-                      _rdvs.where((rdv) {
-                        final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-                        return _statusLabel(status) == 'Accepté';
-                      }).length.toString(),
+                      _rdvs
+                          .where((rdv) {
+                            final status =
+                                (rdv['statuts'] ?? rdv['status'] ?? '')
+                                    .toString();
+                            return _statusLabel(status) == 'Accepté';
+                          })
+                          .length
+                          .toString(),
                       "Acceptés",
                       Colors.green.shade200,
                       Colors.green.shade800,
@@ -485,10 +516,15 @@ class _RendezVousPageState extends State<RendezVousPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: statusCard(
-                      _rdvs.where((rdv) {
-                        final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-                        return _statusLabel(status) == 'Refusé';
-                      }).length.toString(),
+                      _rdvs
+                          .where((rdv) {
+                            final status =
+                                (rdv['statuts'] ?? rdv['status'] ?? '')
+                                    .toString();
+                            return _statusLabel(status) == 'Refusé';
+                          })
+                          .length
+                          .toString(),
                       "Refusés",
                       Colors.red.shade200,
                       Colors.red.shade800,
@@ -518,7 +554,10 @@ class _RendezVousPageState extends State<RendezVousPage> {
                           });
                         },
                         child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 2,
+                            vertical: 4,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: selected ? primary : Colors.grey.shade100,
@@ -532,7 +571,9 @@ class _RendezVousPageState extends State<RendezVousPage> {
                               filter,
                               style: TextStyle(
                                 color: selected ? Colors.white : primary,
-                                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
                                 fontSize: 13,
                               ),
                             ),
@@ -550,61 +591,69 @@ class _RendezVousPageState extends State<RendezVousPage> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _rdvs.where(_matchesFilter).isEmpty
-                        ? const Center(
-                            child: Text("Aucun rendez-vous pour le moment"),
-                          )
-                        : ListView.builder(
-                            itemCount: _rdvs.where(_matchesFilter).length,
-                            itemBuilder: (context, index) {
-                              final filteredRdvs = _rdvs.where(_matchesFilter).toList();
-                              final rdv = filteredRdvs[index];
-                              final date = (rdv['date'] ?? '').toString().trim();
-                              final heureDebut =
-                                  (rdv['heureDebut'] ?? '').toString().trim();
-                              final heureFin = (rdv['heureFin'] ?? '').toString().trim();
-                              final status =
-                                  (rdv['statuts'] ?? rdv['status'] ?? '')
-                                      .toString();
-                                final contactName = _contactName(rdv);
-                              final subject = (rdv['nomMatiere'] ??
-                                          rdv['matiere'] ??
-                                          rdv['sujet'] ??
-                                          rdv['motif'] ??
-                                          'Rendez-vous')
-                                      .toString();
-                              final duration = _formatDuration(heureDebut, heureFin);
-                              final time = heureDebut.isEmpty && heureFin.isEmpty
-                                  ? 'Heure à confirmer'
-                                  : '$heureDebut - $heureFin';
+                    ? const Center(
+                        child: Text("Aucun rendez-vous pour le moment"),
+                      )
+                    : ListView.builder(
+                        itemCount: _rdvs.where(_matchesFilter).length,
+                        itemBuilder: (context, index) {
+                          final filteredRdvs = _rdvs
+                              .where(_matchesFilter)
+                              .toList();
+                          final rdv = filteredRdvs[index];
+                          final date = (rdv['date'] ?? '').toString().trim();
+                          final heureDebut = (rdv['heureDebut'] ?? '')
+                              .toString()
+                              .trim();
+                          final heureFin = (rdv['heureFin'] ?? '')
+                              .toString()
+                              .trim();
+                          final status = (rdv['statuts'] ?? rdv['status'] ?? '')
+                              .toString();
+                          final contactName = _contactName(rdv);
+                          final subject =
+                              (rdv['nomMatiere'] ??
+                                      rdv['matiere'] ??
+                                      rdv['sujet'] ??
+                                      rdv['motif'] ??
+                                      'Rendez-vous')
+                                  .toString();
+                          final duration = _formatDuration(
+                            heureDebut,
+                            heureFin,
+                          );
+                          final time = heureDebut.isEmpty && heureFin.isEmpty
+                              ? 'Heure à confirmer'
+                              : '$heureDebut - $heureFin';
 
-                              return AppointmentCard(
-                                tutorName: contactName,
-                                subject: subject,
-                                duration: duration,
-                                date: date.isEmpty ? 'Date à confirmer' : date,
-                                time: time,
-                                scolor: _statusColor(status),
-                                state: _statusLabel(status),
-                                onTap: () => _showRdvDetails(context, rdv),
-                                onAccept: _isTeacher && _isPendingStatus(status)
-                                    ? () async {
-                                        /* final rdvId = rdv['id'] ?? rdv['idRdv'];
+                          return AppointmentCard(
+                            tutorName: contactName,
+                            subject: subject,
+                            duration: duration,
+                            date: date.isEmpty ? 'Date à confirmer' : date,
+                            time: time,
+                            scolor: _statusColor(status),
+                            state: _statusLabel(status),
+                            onTap: () => _showRdvDetails(context, rdv),
+                            onAccept: _isTeacher && _isPendingStatus(status)
+                                ? () async {
+                                    /* final rdvId = rdv['id'] ?? rdv['idRdv'];
                                         await rdvProvider.acceptTeacherRDV(rdvId);
                                         await _fetchRdv(); */
-                                      }
-                                    : null,
-                                onReject: _isTeacher && _isPendingStatus(status)
-                                    ? () async {
-                                        /* final rdvId = rdv['id'] ?? rdv['idRdv'];
+                                  }
+                                : null,
+                            onReject: _isTeacher && _isPendingStatus(status)
+                                ? () async {
+                                    /* final rdvId = rdv['id'] ?? rdv['idRdv'];
                                         await rdvProvider.rejectTeacherRDV(
                                           rdvId
                                         ); */
-                                        await _fetchRdv();
-                                      }
-                                    : null,
-                              );
-                            },
-                          ),
+                                    await _fetchRdv();
+                                  }
+                                : null,
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -613,8 +662,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
     );
   }
 
-  Widget statusCard(
-      String count, String title, Color bg, Color textColor) {
+  Widget statusCard(String count, String title, Color bg, Color textColor) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -695,25 +743,21 @@ class _RendezVousPageState extends State<RendezVousPage> {
                       name,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    Text(
-                      subject,
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
+                    Text(subject, style: TextStyle(color: Colors.grey[600])),
                   ],
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: color.withOpacity(.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  status,
-                  style: TextStyle(color: color),
-                ),
-              )
+                child: Text(status, style: TextStyle(color: color)),
+              ),
             ],
           ),
           const SizedBox(height: 15),
@@ -727,7 +771,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
               const SizedBox(width: 5),
               Text(hour),
             ],
-          )
+          ),
         ],
       ),
     );
