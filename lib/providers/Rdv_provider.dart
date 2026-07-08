@@ -109,7 +109,12 @@ class RdvProvider extends ChangeNotifier {
 
       if (enseignant != null) {
         idEnseignant = enseignant['idenseignant'];
+        int idfinalE =idEnseignant ?? 0;
 
+      if (idEnseignant != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt("idEnseignant", idfinalE);
+      }
       } else {
         debugPrint(
           'No enseignant found with name: $name',
@@ -162,15 +167,13 @@ Future<void> createRDV({
   required String date,
   required String temp,
   required String motif,
-
+  String? heureDebut,
+  String? heureFin,
 }) async {
+  final debutTemp = (heureDebut ?? temp.split('-')[0]).trim();
+  final finTemp = (heureFin ?? temp.split('-')[1]).trim();
 
-
-  final debutTemp = temp.split('-')[0];
-  final finTemp = temp.split('-')[1];
-  
-
-  try{
+  try {
     final response = await http.post(
       Uri.parse('http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$idParent/7'),
       headers: {'Content-Type': 'application/json'},
@@ -180,7 +183,6 @@ Future<void> createRDV({
         "heureDebut": debutTemp,
         "heureFin": finTemp,
         "motif": motif,
-        
       }),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -188,10 +190,9 @@ Future<void> createRDV({
     } else {
       debugPrint('Failed to create RDV: ${response.statusCode}');
     }
-  }catch(e){
+  } catch (e) {
     debugPrint('Error creating RDV: $e');
   }
-
 }
 
   Future<List<Map<String, dynamic>>> getParentRDV(int idParent) async {
@@ -279,38 +280,42 @@ Future<void> createRDV({
     } catch (e) {
       debugPrint('Error accepting RDV: $e');
     }
+    notifyListeners();
   }
 
   Future<void> rejectTeacherRDV(
     dynamic rdvId,
-    String reason,
-    String newDate,
-    String timeStart,
-    String timeEnd,
-  ) async {
+    String reason, {
+    String newDate = '',
+    String timeStart = '',
+    String timeEnd = '',
+  }) async {
     try {
+      final body = <String, dynamic>{
+        'motifRefus': reason,
+        'status': newDate.isEmpty ? 'rejected' : 'rejected_with_proposal',
+      };
+      if (newDate.isNotEmpty) body['dateProposee'] = newDate;
+      if (timeStart.isNotEmpty) body['heureDebutProposee'] = timeStart;
+      if (timeEnd.isNotEmpty) body['heureFinProposee'] = timeEnd;
+
       final response = await http.put(
         Uri.parse(
           'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/reject',
         ),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "motifRefus": reason,
-          "dateProposee": newDate,
-          "heureDebutProposee": timeStart,
-          "heureFinProposee": timeEnd,
-          "status": "rejected_with_proposal",
-        }),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        debugPrint('RDV rejected with proposal successfully');
+        debugPrint('RDV rejected successfully');
       } else {
         debugPrint('Failed to reject RDV: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error rejecting RDV: $e');
     }
+    notifyListeners();
   }
 
   Future<void> createTeacherRDV({

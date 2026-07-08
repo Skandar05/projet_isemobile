@@ -17,8 +17,11 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
 
   String enseignantFullname = '';
   String matiere = '';
+  String selectedDateDisplay = '';
   String selectedDateValue = '';
   String selectedTimeValue = '';
+  String _selectedTimeStart = '';
+  String _selectedTimeEnd = '';
   int idParent = 0;
   int idEnseignant = 0;
   bool _canSend = false;
@@ -48,11 +51,16 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
     setState(() {
       enseignantFullname = prefs.getString('enseignantFullname') ?? '';
       matiere = prefs.getString('matiere') ?? '';
+      selectedDateDisplay = prefs.getString('selectedDayLabel') ??
+          prefs.getString('selectedDateDisplay') ??
+          '';
       selectedDateValue = prefs.getString('selectedDateValue') ?? '';
       selectedTimeValue = prefs.getString('selectedTimeValue') ?? '';
       idParent = prefs.getInt('idPersonne') ?? 0;
       idEnseignant =
           int.tryParse(prefs.getString('idEnseignant') ?? '') ?? 0;
+      _selectedTimeStart = prefs.getString('selectedTimeStart') ?? '';
+      _selectedTimeEnd = prefs.getString('selectedTimeEnd') ?? '';
     });
   }
 
@@ -172,7 +180,7 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
 
                       _row("Contact", enseignantFullname),
                       _row("Matière", matiere),
-                      _row("Date", selectedDateValue),
+                      _row("Date", selectedDateDisplay),
                       _row("Créneau", selectedTimeValue),
                     ],
                   ),
@@ -242,32 +250,34 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                     ),
                     icon: const Icon(Icons.send),
                     label: const Text("Envoyer la demande"),
-                    onPressed: _canSend
-                        ? () async {
-                            final rdvProvider =
-                                Provider.of<RdvProvider>(context,
-                                    listen: false);
+                     onPressed: _canSend
+                          ? () async {
+                              final rdvProvider =
+                                  Provider.of<RdvProvider>(context,
+                                      listen: false);
 
-                            await rdvProvider.createRDV(
-                              idParent: idParent,
-                              idEnseignant: idEnseignant,
-                              date: selectedDateValue,
-                              temp: selectedTimeValue,
-                              motif: _reasonController.text,
-                            );
+                              await rdvProvider.createRDV(
+                                idParent: idParent,
+                                idEnseignant: idEnseignant,
+                                date: selectedDateValue,
+                                temp: selectedTimeValue,
+                                motif: _reasonController.text,
+                                heureDebut: _selectedTimeStart,
+                                heureFin: _selectedTimeEnd,
+                              );
 
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    SuccessRdvScreen(
-                                  enseignantFullname:
-                                      enseignantFullname,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      SuccessRdvScreen(
+                                    enseignantFullname:
+                                        enseignantFullname,
+                                  ),
                                 ),
-                              ),
-                            );
-                          }
-                        : null,
+                              );
+                            }
+                          : null,
                   ),
                 ),
               ],

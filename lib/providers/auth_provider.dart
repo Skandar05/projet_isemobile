@@ -138,7 +138,7 @@ class AuthProvider extends ChangeNotifier {
     if (p.isEmpty && n.isEmpty) return 'Utilisateur';
     if (p.isEmpty) return n;
     if (n.isEmpty) return p;
-    return '$p $n';
+    return '$n $p';
   }
 
   /// Renvoie la civilité sous forme de texte

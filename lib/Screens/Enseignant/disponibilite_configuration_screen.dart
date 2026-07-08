@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test/providers/Rdv_provider.dart';
+import 'package:test/providers/auth_provider.dart';
 import 'package:test/providers/disponibilite_provider.dart';
 
 class DisponibiliteConfigurationScreen extends StatefulWidget {
@@ -9,6 +11,7 @@ class DisponibiliteConfigurationScreen extends StatefulWidget {
   @override
   State<DisponibiliteConfigurationScreen> createState() =>
       _DisponibiliteConfigurationScreenState();
+      
 }
 
 class _DisponibiliteConfigurationScreenState
@@ -30,12 +33,18 @@ class _DisponibiliteConfigurationScreenState
     _loadTeacherAndDisponibilites();
   }
 
+
+
 Future<void> _loadTeacherAndDisponibilites() async {
+  
+  final AuthProvider authProvider =Provider.of<AuthProvider>(context, listen: false);
+  final RdvProvider GetIdE = Provider.of<RdvProvider>(context,listen:false);
+  final name = authProvider.fullName;
+  GetIdE.selectEnseignant(name);
   final prefs = await SharedPreferences.getInstance();
-  final teacherId = prefs.getInt('idE') ?? prefs.getInt('idPersonne');
 
-  print("teacherId loaded = $teacherId"); // 👈 ICI
-
+  final teacherId = prefs.getInt('idEnseignant');
+  
   if (!mounted) {
     return;
   }

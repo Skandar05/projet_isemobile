@@ -26,6 +26,9 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   final List<String> availableDays = [];
   final List<Map<String, String>> allSlots = [];
   final List<Map<String, String>> filteredSlots = [];
+  final List<Map<String, String>> availableDates = [];
+  final List<Map<String, String>> allDateSlots = [];
+  final List<Map<String, String>> filteredDateSlots = [];
 
   @override
   void initState() {
@@ -53,6 +56,37 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     }
   }
 
+  List<Map<String, String>> _generateSlots(String start, String end, {int slotMinutes = 15}) {
+    final slots = <Map<String, String>>[];
+    final startParts = start.split(':');
+    final endParts = end.split(':');
+
+    if (startParts.length != 2 || endParts.length != 2) return slots;
+
+    final startH = int.tryParse(startParts[0]) ?? 0;
+    final startM = int.tryParse(startParts[1]) ?? 0;
+    final endH = int.tryParse(endParts[0]) ?? 0;
+    final endM = int.tryParse(endParts[1]) ?? 0;
+
+    final totalStart = startH * 60 + startM;
+    final totalEnd = endH * 60 + endM;
+
+    if (totalEnd <= totalStart) return slots;
+
+    for (var current = totalStart; current + slotMinutes <= totalEnd; current += slotMinutes) {
+      final slotEnd = current + slotMinutes;
+      final slotStartStr = '${(current ~/ 60).toString().padLeft(2, '0')}:${(current % 60).toString().padLeft(2, '0')}';
+      final slotEndStr = '${(slotEnd ~/ 60).toString().padLeft(2, '0')}:${(slotEnd % 60).toString().padLeft(2, '0')}';
+      slots.add({
+        'start': slotStartStr,
+        'end': slotEndStr,
+        'time': '$slotStartStr - $slotEndStr',
+      });
+    }
+
+    return slots;
+  }
+
   Future<void> fetchDisponibilites() async {
     setState(() {
       isLoading = true;
@@ -62,6 +96,9 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
       filteredSlots.clear();
       selectedDayIndex = null;
       selectedSlotIndex = null;
+      availableDates.clear();
+      allDateSlots.clear();
+      filteredDateSlots.clear();
     });
 
     final teacherId = int.tryParse(id);
@@ -74,16 +111,14 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     }
 
     try {
-      final url = 'http://apiserv.ise-college-lycee.com:8415/api/enseignant/$teacherId/disponibilite';
-      debugPrint('fetchDisponibilites: GET $url');
+      debugPrint('${teacherId}');
+      final url = 'http://apiserv.ise-college-lycee.com:8415/api/enseignant/disponibilites/$teacherId';
+      
 
       final response = await http.get(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
-
-      debugPrint('fetchDisponibilites: status=${response.statusCode}');
-      debugPrint('fetchDisponibilites: body=${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -99,29 +134,44 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                 availableDays.add(day);
               }
 
-              final disponibiliteBegin = item['disponibilite_debut']?.toString() ?? '';
-              final disponibiliteEnd = item['disponibilite_fin']?.toString() ?? '';
+              final heureDebut = (item['heure_debut']?.toString() ?? item['heuredebut']?.toString() ?? '').trim();
+              final heureFin = (item['heure_fin']?.toString() ?? item['heurefin']?.toString() ?? '').trim();
+              final dispoDebut = (item['disponibilite_debut']?.toString() ?? '').trim();
+              final dispoFin = (item['disponibilite_fin']?.toString() ?? '').trim();
 
-              if (disponibiliteBegin.isNotEmpty && disponibiliteEnd.isNotEmpty) {
-                final slotKey = '$day|$disponibiliteBegin|$disponibiliteEnd';
-                if (!slotKeys.contains(slotKey)) {
-                  slotKeys.add(slotKey);
-                  allSlots.add({
-                    'jour': day,
-                    'time': '$disponibiliteBegin - $disponibiliteEnd',
-                  });
+              final startTime = heureDebut.isNotEmpty ? heureDebut : dispoDebut;
+              final endTime = heureFin.isNotEmpty ? heureFin : dispoFin;
+
+              if (startTime.isNotEmpty && endTime.isNotEmpty) {
+                final subSlots = _generateSlots(startTime, endTime);
+                for (final slot in subSlots) {
+                  final slotKey = '$day|${slot['start']}|${slot['end']}';
+                  if (!slotKeys.contains(slotKey)) {
+                    slotKeys.add(slotKey);
+                    allSlots.add({
+                      'jour': day,
+                      'start': slot['start']!,
+                      'end': slot['end']!,
+                      'time': slot['time']!,
+                    });
+                  }
                 }
               }
             }
           }
         }
 
+        _buildCalendarOccurrences();
+
         debugPrint('fetchDisponibilites: days=$availableDays');
         debugPrint('fetchDisponibilites: slots=$allSlots');
+        debugPrint('fetchDisponibilites: dateSlots=$allDateSlots');
 
         if (availableDays.isEmpty) {
           errorMessage = 'Aucun jour disponible trouvé.';
         }
+      } else if (response.statusCode == 404) {
+        errorMessage = 'Aucune disponibilité trouvée pour cet enseignant.';
       } else {
         errorMessage = 'Erreur serveur : ${response.statusCode}';
       }
@@ -134,19 +184,92 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     });
   }
 
+  List<DateTime> _nextWeekdaysForDayName(String dayName) {
+    final normalized = dayName.toLowerCase();
+    final weekdays = {
+      'lundi': DateTime.monday,
+      'mardi': DateTime.tuesday,
+      'mercredi': DateTime.wednesday,
+      'jeudi': DateTime.thursday,
+      'vendredi': DateTime.friday,
+      'samedi': DateTime.saturday,
+      'dimanche': DateTime.sunday,
+    };
+    final target = weekdays[normalized];
+    if (target == null) return <DateTime>[];
+
+    final now = DateTime.now();
+    final dates = <DateTime>[];
+    for (var i = 0; i < 8; i++) {
+      final candidate = DateTime(now.year, now.month, now.day + i);
+      if (candidate.weekday == target) {
+        dates.add(candidate);
+      }
+    }
+    return dates;
+  }
+
+  void _buildCalendarOccurrences() {
+    availableDates.clear();
+    allDateSlots.clear();
+    filteredDateSlots.clear();
+
+    final dateSlotKeys = <String>{};
+    for (final day in availableDays) {
+      final dates = _nextWeekdaysForDayName(day);
+      for (final date in dates) {
+        final dateStrApi =
+            '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        final dateStrDisplay =
+            '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+        final label =
+            '$day ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+        if (!availableDates.any((d) => d['label'] == label && d['value'] == dateStrApi)) {
+          availableDates.add({
+            'label': label,
+            'value': dateStrApi,
+            'display': dateStrDisplay,
+            'jour': day,
+          });
+        }
+
+        for (final slot in allSlots) {
+          if (slot['jour'] != day) continue;
+          final key = '$dateStrApi|${slot['start']}|${slot['end']}';
+          if (!dateSlotKeys.contains(key)) {
+            dateSlotKeys.add(key);
+            allDateSlots.add({
+              'label': label,
+              'value': dateStrApi,
+              'display': dateStrDisplay,
+              'jour': day,
+              'start': slot['start']!,
+              'end': slot['end']!,
+              'time': slot['time']!,
+            });
+          }
+        }
+      }
+    }
+  }
+
   bool get isFormValid =>
       selectedDayIndex != null && selectedSlotIndex != null;
 
-  void _selectDay(int index) {
-    final day = availableDays[index];
-    final slotsForDay = allSlots.where((slot) => slot['jour'] == day).toList();
+  void _selectDate(int index) {
+    final dateEntry = availableDates[index];
+    final label = dateEntry['label'] ?? '';
+    final slotsForDate = allDateSlots.where((slot) {
+      final slotLabel = slot['label'] ?? '';
+      return slot['jour'] == dateEntry['jour'] && slotLabel == label;
+    }).toList();
 
     setState(() {
       selectedDayIndex = index;
       selectedSlotIndex = null;
       filteredSlots
         ..clear()
-        ..addAll(slotsForDay);
+        ..addAll(slotsForDate);
     });
   }
 
@@ -160,7 +283,6 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               const SizedBox(height: 10),
 
               // HEADER
@@ -252,8 +374,6 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
 
               const SizedBox(height: 20),
 
-              
-
               // TEACHER CARD
               Container(
                 padding: const EdgeInsets.all(12),
@@ -315,20 +435,34 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),
+              ] else if (availableDates.isEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Aucune date disponible pour ${fullname.isNotEmpty ? fullname : "cet enseignant"}.',
+                    style: TextStyle(color: Colors.orange.shade800),
+                  ),
+                ),
               ] else ...[
                 SizedBox(
                   height: 90,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: availableDays.length,
+                    itemCount: availableDates.length,
                     itemBuilder: (context, index) {
-                      final dayName = availableDays[index];
+                      final date = availableDates[index];
+                      final label = date['label'] ?? '';
                       final isSelected = selectedDayIndex == index;
 
                       return GestureDetector(
-                        onTap: () => _selectDay(index),
+                        onTap: () => _selectDate(index),
                         child: Container(
-                          width: 120,
+                          width: 130,
                           margin: const EdgeInsets.only(right: 10),
                           decoration: BoxDecoration(
                             color: isSelected ? const Color(0xff1F4B8F) : Colors.white,
@@ -341,18 +475,20 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                dayName,
+                                label,
                                 style: TextStyle(
                                   color: isSelected ? Colors.white : Colors.black,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Disponible',
+                                'Créneaux disponibles',
                                 style: TextStyle(
                                   color: isSelected ? Colors.white70 : Colors.grey,
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
@@ -379,8 +515,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             child: Text(
                               selectedDayIndex == null
-                                  ? 'Sélectionnez un jour pour voir les créneaux disponibles.'
-                                  : 'Aucun créneau disponible pour ce jour.',
+                                  ? 'Sélectionnez une date pour voir les créneaux disponibles.'
+                                  : 'Aucun créneau disponible pour cette date.',
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Colors.grey),
                             ),
@@ -436,7 +572,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isFormValid
+                    backgroundColor: selectedDayIndex != null && selectedSlotIndex != null
                         ? const Color(0xff1F4B8F)
                         : Colors.grey,
                     padding: const EdgeInsets.all(16),
@@ -444,14 +580,17 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: isFormValid
+                  onPressed: selectedDayIndex != null && selectedSlotIndex != null
                       ? () async {
-                          final selectedDay = availableDays[selectedDayIndex!];
-                          final selectedTime = filteredSlots[selectedSlotIndex!]['time'] ?? '';
+                          final selectedDate = availableDates[selectedDayIndex!];
+                          final selectedSlot = filteredSlots[selectedSlotIndex!];
 
                           final prefs = await SharedPreferences.getInstance();
-                          await prefs.setString('selectedDateValue', selectedDay);
-                          await prefs.setString('selectedTimeValue', selectedTime);
+                          await prefs.setString('selectedDateValue', selectedDate['value'] ?? '');
+                          await prefs.setString('selectedDayLabel', selectedDate['label'] ?? '');
+                          await prefs.setString('selectedTimeValue', selectedSlot['time'] ?? '');
+                          await prefs.setString('selectedTimeStart', selectedSlot['start'] ?? '');
+                          await prefs.setString('selectedTimeEnd', selectedSlot['end'] ?? '');
 
                           Navigator.push(
                             context,
