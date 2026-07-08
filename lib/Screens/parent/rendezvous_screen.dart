@@ -2,7 +2,6 @@
 import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
-import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/Screens/parent/creationRDV.dart';
 import 'package:test/providers/Rdv_provider.dart';
@@ -152,7 +151,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const DisponibiliteConfigurationScreen(),
+        builder: (context) => const ClasseEnseignant(),
       ),
     );
   }
@@ -476,6 +475,29 @@ class _RendezVousPageState extends State<RendezVousPage> {
                 ),
 
               const SizedBox(height: 15),
+
+              if (_isTeacher)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _openDisponibiliteConfiguration,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text(
+                      'Demander un rendez-vous',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+
+              if (_isTeacher) const SizedBox(height: 15),
 
               /// STATS
               Row(

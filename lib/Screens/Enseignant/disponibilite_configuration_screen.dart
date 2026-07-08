@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:test/providers/auth_provider.dart';
 import 'package:test/providers/disponibilite_provider.dart';
@@ -157,18 +158,30 @@ String _displayEnd(Map<String, dynamic> disponibilite) {
       text: _displayEnd(disponibilite ?? <String, dynamic>{}),
     );
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
+    String? errorMessage;
+
+await showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  builder: (sheetContext) {
+    return StatefulBuilder(
+      builder: (context, setSheetState) {
             Future<void> pickStartTime() async {
               final picked = await showTimePicker(
                 context: context,
                 initialTime: startTime,
+                initialEntryMode: TimePickerEntryMode.input, // <-- Clavier
+                builder: (context, child) {
+                  return MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      alwaysUse24HourFormat: true,
+                    ),
+                    child: child!,
+                  );
+                },
               );
+
               if (picked != null) {
                 setSheetState(() {
                   startTime = picked;
@@ -180,8 +193,18 @@ String _displayEnd(Map<String, dynamic> disponibilite) {
             Future<void> pickEndTime() async {
               final picked = await showTimePicker(
                 context: context,
-                initialTime: endTime,
+                initialTime: startTime,
+                initialEntryMode: TimePickerEntryMode.input, // <-- Clavier
+                builder: (context, child) {
+                  return MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      alwaysUse24HourFormat: true,
+                    ),
+                    child: child!,
+                  );
+                },
               );
+
               if (picked != null) {
                 setSheetState(() {
                   endTime = picked;
@@ -230,6 +253,38 @@ String _displayEnd(Map<String, dynamic> disponibilite) {
                             ),
                           ),
                           const SizedBox(height: 20),
+
+                          if (errorMessage != null)
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.red,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: Colors.red,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      errorMessage!,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           DropdownButtonFormField<String>(
                             value: selectedDay,
                             decoration: const InputDecoration(
@@ -314,6 +369,27 @@ String _displayEnd(Map<String, dynamic> disponibilite) {
                                   );
                                   return;
                                 }
+                                 final jourExiste = provider.disponibilites.any((d) {
+    // Lors d'une modification, on ignore la disponibilité actuelle
+                                    if (isEditing && d['id'] == disponibilite?['id']) {
+                                      return false;
+                                    }
+
+                                    return (d['jour'] ?? '')
+                                            .toString()
+                                            .trim()
+                                            .toLowerCase() ==
+                                        selectedDay.trim().toLowerCase();
+                                  });
+
+                                  if (jourExiste) {
+                                    setSheetState(() {
+                                      errorMessage =
+                                          'Une disponibilité est déjà configurée pour $selectedDay.';
+                                    });
+
+                                    return;
+                                  }
 
                                final disponibiliteData = {
                                 if (isEditing) 'id': disponibilite['id'],
@@ -549,6 +625,30 @@ floatingActionButton: FloatingActionButton.extended(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ClasseEnseignant(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Demander un rendez-vous'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff1F4B8F),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Gérez vos plages horaires sans découper les créneaux. Les rendez-vous seront générés dynamiquement plus tard.',
                 style: TextStyle(
@@ -583,6 +683,7 @@ floatingActionButton: FloatingActionButton.extended(
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton.icon(
+                              
                               onPressed: () => _openDisponibiliteForm(),
                               icon: const Icon(Icons.add),
                               label: const Text('Ajouter une disponibilité'),

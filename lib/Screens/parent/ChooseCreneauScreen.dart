@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'creationRDV.dart';
 import 'ConfirmAndSendScreen.dart';
+import 'package:test/Screens/Enseignant/TeacherConfirmRdvScreen.dart';
 
 class ChooseCreneauScreen extends StatefulWidget {
   const ChooseCreneauScreen({super.key});
@@ -18,6 +19,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   String fullname = '';
   String matiere = '';
 
+  int selectedWeekOffset = 0;
   int? selectedDayIndex;
   int? selectedSlotIndex;
   bool isLoading = true;
@@ -26,6 +28,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   final List<String> availableDays = [];
   final List<Map<String, String>> allSlots = [];
   final List<Map<String, String>> filteredSlots = [];
+  final List<Map<String, String>> allDateOccurrences = [];
   final List<Map<String, String>> availableDates = [];
   final List<Map<String, String>> allDateSlots = [];
   final List<Map<String, String>> filteredDateSlots = [];
@@ -94,8 +97,10 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
       availableDays.clear();
       allSlots.clear();
       filteredSlots.clear();
+      allDateOccurrences.clear();
       selectedDayIndex = null;
       selectedSlotIndex = null;
+      selectedWeekOffset = 0;
       availableDates.clear();
       allDateSlots.clear();
       filteredDateSlots.clear();
@@ -111,7 +116,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     }
 
     try {
-      debugPrint('${teacherId}');
+      debugPrint('$teacherId');
       final url = 'http://apiserv.ise-college-lycee.com:8415/api/enseignant/disponibilites/$teacherId';
       
 
@@ -184,8 +189,74 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     });
   }
 
-  List<DateTime> _nextWeekdaysForDayName(String dayName) {
-    final normalized = dayName.toLowerCase();
+  DateTime _startOfWeek(DateTime date) {
+    return DateTime(date.year, date.month, date.day - (date.weekday - 1));
+  }
+
+  String _formatDateKey(DateTime date) {
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatWeekLabel(DateTime start) {
+    final end = start.add(const Duration(days: 6));
+    final startLabel = '${start.day.toString().padLeft(2, '0')}/${start.month.toString().padLeft(2, '0')}';
+    final endLabel = '${end.day.toString().padLeft(2, '0')}/${end.month.toString().padLeft(2, '0')}';
+    return 'Semaine du $startLabel au $endLabel';
+  }
+
+  DateTime _currentWeekStart() {
+    return _startOfWeek(DateTime.now()).add(Duration(days: selectedWeekOffset * 7));
+  }
+
+  void _applyWeekFilter() {
+    availableDates.clear();
+    filteredSlots.clear();
+    selectedDayIndex = null;
+    selectedSlotIndex = null;
+
+    final weekStart = _currentWeekStart();
+    final weekEnd = weekStart.add(const Duration(days: 6));
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+
+    for (final date in allDateOccurrences) {
+      final value = date['value'];
+      if (value == null) continue;
+
+      final parsedDate = DateTime.tryParse(value);
+      if (parsedDate == null) continue;
+
+      if (selectedWeekOffset == 0 && parsedDate.isBefore(today)) {
+        continue;
+      }
+
+      if (parsedDate.isBefore(weekStart) || parsedDate.isAfter(weekEnd)) {
+        continue;
+      }
+
+      availableDates.add(date);
+    }
+
+    availableDates.sort((a, b) => (a['value'] ?? '').compareTo(b['value'] ?? ''));
+  }
+
+  void _changeWeek(int delta) {
+    if (selectedWeekOffset + delta < 0) {
+      return;
+    }
+
+    setState(() {
+      selectedWeekOffset += delta;
+      _applyWeekFilter();
+    });
+  }
+
+  void _buildCalendarOccurrences() {
+    allDateOccurrences.clear();
+    allDateSlots.clear();
+
+    final dateSlotKeys = <String>{};
+    final weekStart = _startOfWeek(DateTime.now());
+    final horizonEnd = weekStart.add(const Duration(days: 41));
     final weekdays = {
       'lundi': DateTime.monday,
       'mardi': DateTime.tuesday,
@@ -195,37 +266,27 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
       'samedi': DateTime.saturday,
       'dimanche': DateTime.sunday,
     };
-    final target = weekdays[normalized];
-    if (target == null) return <DateTime>[];
 
-    final now = DateTime.now();
-    final dates = <DateTime>[];
-    for (var i = 0; i < 8; i++) {
-      final candidate = DateTime(now.year, now.month, now.day + i);
-      if (candidate.weekday == target) {
-        dates.add(candidate);
-      }
-    }
-    return dates;
-  }
-
-  void _buildCalendarOccurrences() {
-    availableDates.clear();
-    allDateSlots.clear();
-    filteredDateSlots.clear();
-
-    final dateSlotKeys = <String>{};
     for (final day in availableDays) {
-      final dates = _nextWeekdaysForDayName(day);
-      for (final date in dates) {
-        final dateStrApi =
-            '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final normalized = day.toLowerCase();
+      final target = weekdays[normalized];
+      if (target == null) continue;
+
+      for (var candidate = weekStart;
+          !candidate.isAfter(horizonEnd);
+          candidate = candidate.add(const Duration(days: 1))) {
+        if (candidate.weekday != target) {
+          continue;
+        }
+
+        final dateStrApi = _formatDateKey(candidate);
         final dateStrDisplay =
-            '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+            '${candidate.day.toString().padLeft(2, '0')}/${candidate.month.toString().padLeft(2, '0')}/${candidate.year}';
         final label =
-            '$day ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
-        if (!availableDates.any((d) => d['label'] == label && d['value'] == dateStrApi)) {
-          availableDates.add({
+            '$day ${candidate.day.toString().padLeft(2, '0')}/${candidate.month.toString().padLeft(2, '0')}';
+
+        if (!allDateOccurrences.any((d) => d['label'] == label && d['value'] == dateStrApi)) {
+          allDateOccurrences.add({
             'label': label,
             'value': dateStrApi,
             'display': dateStrDisplay,
@@ -251,6 +312,15 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
         }
       }
     }
+
+    allDateOccurrences.sort((a, b) => (a['value'] ?? '').compareTo(b['value'] ?? ''));
+    allDateSlots.sort((a, b) {
+      final valueCompare = (a['value'] ?? '').compareTo(b['value'] ?? '');
+      if (valueCompare != 0) return valueCompare;
+      return (a['start'] ?? '').compareTo(b['start'] ?? '');
+    });
+
+    _applyWeekFilter();
   }
 
   bool get isFormValid =>
@@ -419,6 +489,42 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
 
               const SizedBox(height: 10),
 
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: selectedWeekOffset > 0 ? () => _changeWeek(-1) : null,
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _formatWeekLabel(_currentWeekStart()),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Filtrée par semaine',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _changeWeek(1),
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
               if (isLoading) ...[
                 const SizedBox(height: 16),
                 const Center(child: CircularProgressIndicator()),
@@ -444,7 +550,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Aucune date disponible pour ${fullname.isNotEmpty ? fullname : "cet enseignant"}.',
+                    'Aucune date disponible pour cette semaine.',
                     style: TextStyle(color: Colors.orange.shade800),
                   ),
                 ),
@@ -582,20 +688,27 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                   ),
                   onPressed: selectedDayIndex != null && selectedSlotIndex != null
                       ? () async {
+                          final prefs = await SharedPreferences.getInstance();
                           final selectedDate = availableDates[selectedDayIndex!];
                           final selectedSlot = filteredSlots[selectedSlotIndex!];
 
-                          final prefs = await SharedPreferences.getInstance();
                           await prefs.setString('selectedDateValue', selectedDate['value'] ?? '');
                           await prefs.setString('selectedDayLabel', selectedDate['label'] ?? '');
                           await prefs.setString('selectedTimeValue', selectedSlot['time'] ?? '');
                           await prefs.setString('selectedTimeStart', selectedSlot['start'] ?? '');
                           await prefs.setString('selectedTimeEnd', selectedSlot['end'] ?? '');
+                          final flow = prefs.getString('rdvFlow') ?? 'parent';
+
+                          if (!context.mounted) {
+                            return;
+                          }
 
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const ConfirmAndSendScreen(),
+                              builder: (context) => flow == 'teacher'
+                                  ? const TeacherConfirmRdvScreen()
+                                  : const ConfirmAndSendScreen(),
                             ),
                           );
                         }

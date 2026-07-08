@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -95,21 +94,39 @@ Future<List<dynamic>> GetEleveParent(int IdEleve) async {
 
 
   List<dynamic> parents = [];
-  final response = await http.get(
-    Uri.parse("http://apiserv.ise-college-lycee.com:8415/api/parents/eleve/$IdEleve"),
-    headers: {'Content-Type': 'application/json'},
-  );
 
   try {
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data is List) {
-        parents = data;
-      } else {
+    final endpoints = [
+      'http://apiserv.ise-college-lycee.com:8415/api/parents-eleve/$IdEleve',
+      'http://apiserv.ise-college-lycee.com:8415/api/parents/eleve/$IdEleve',
+    ];
+
+    for (final endpoint in endpoints) {
+      final response = await http.get(
+        Uri.parse(endpoint),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List) {
+          parents = data;
+          break;
+        }
+
+        if (data is Map<String, dynamic>) {
+          parents = [data];
+          break;
+        }
+
         print('Unexpected data format: $data');
+        break;
       }
-    } else {
-      print('Failed to load parents. Status code: ${response.statusCode}');
+
+      if (response.statusCode != 404) {
+        print('Failed to load parents. Status code: ${response.statusCode}');
+        break;
+      }
     }
   } catch (e) {
     print('Error fetching parents: $e');
