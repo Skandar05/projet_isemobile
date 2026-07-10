@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:test/Screens/parent/ChooseCreneauScreen.dart';
+import 'package:test/Screens/Rdv/ChooseCreneauScreen.dart';
 import 'package:test/providers/EnseignantProvider.dart';
 
 class TeacherStudentsParentsScreen extends StatefulWidget {
@@ -19,7 +19,7 @@ class TeacherStudentsParentsScreen extends StatefulWidget {
 }
 
 class _TeacherStudentsParentsScreenState extends State<TeacherStudentsParentsScreen> {
-  bool isLoading = true;
+  bool isLoading = false;
   String? errorMessage;
   final List<Map<String, dynamic>> _students = [];
   final Map<String, List<dynamic>> _parentsByStudentId = {};
@@ -30,62 +30,51 @@ class _TeacherStudentsParentsScreenState extends State<TeacherStudentsParentsScr
     _loadStudentsAndParents();
   }
 
-  Future<void> _loadStudentsAndParents() async {
+Future<void> _loadStudentsAndParents() async {
+  setState(() {
+    isLoading = true;
+    errorMessage = null;
+    _students.clear();
+    _parentsByStudentId.clear();
+  });
+
+  try {
+    final provider = context.read<EnseignantProvider>();
+
+    final result = await provider.getElevesEtParentsClasse(widget.classId);
+
+    if (!mounted) return;
+
+    final eleves = (result['eleves'] as List<dynamic>? ?? [])
+        .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+        .toList();
+
+    final parentsByEleve =
+        (result['parentsByEleve'] as Map<String, dynamic>? ?? {});
+
     setState(() {
-      isLoading = true;
-      errorMessage = null;
-      _students.clear();
-      _parentsByStudentId.clear();
+      _students.addAll(eleves);
+      for (final entry in parentsByEleve.entries) {
+        _parentsByStudentId[entry.key] =
+            (entry.value as List<dynamic>)
+                .map<Map<String, dynamic>>(
+                  (p) => Map<String, dynamic>.from(p),
+                )
+                .toList();
+      }
+      isLoading = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = false;
+      errorMessage = 'Erreur lors du chargement des eleves.';
     });
 
-    try {
-      final provider = context.read<EnseignantProvider>();
-      final students = await provider.GetEleveClass(widget.classId);
-
-      if (!mounted) {
-        return;
-      }
-
-      if (students.isNotEmpty) {
-        _students.addAll(students.whereType<Map>().map((student) {
-          return Map<String, dynamic>.from(student);
-        }));
-      }
-
-      final parentRequests = <Future<void>>[];
-      for (final student in _students) {
-        final studentId = student['id']?.toString() ?? '';
-        if (studentId.isEmpty) {
-          continue;
-        }
-
-        parentRequests.add(
-          provider.GetEleveParent(int.tryParse(studentId) ?? 0).then((parents) {
-            _parentsByStudentId[studentId] = parents;
-          }),
-        );
-      }
-
-      await Future.wait(parentRequests);
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        isLoading = false;
-        errorMessage = 'Erreur lors du chargement des élèves et parents.';
-      });
-    }
+    debugPrint('Error: ' + e.toString());
   }
+}
 
   String _studentName(Map<String, dynamic> student) {
     final firstName = (student['Prenomfr'] ?? student['prenomfr'] ?? '').toString().trim();
@@ -126,7 +115,37 @@ class _TeacherStudentsParentsScreenState extends State<TeacherStudentsParentsScr
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ChooseCreneauScreen(),
+        builder: (context) => const ChooseCreneauScreen(isTeacher: true),
+      ),
+    );
+  }
+
+  Future<void> _selectBothParents({
+    required Map<String, dynamic> student,
+    required List<Map<String, dynamic>> parents,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final studentId = student['id']?.toString() ?? '';
+    
+    final parentIds = parents.map((p) => p['id']?.toString() ?? p['idParent']?.toString() ?? '').where((id) => id.isNotEmpty).join(',');
+    final parentNames = parents.map((p) => _parentName(p)).join(' & ');
+
+    await prefs.setString('rdvFlow', 'teacher');
+    await prefs.setString('selectedTeacherClassId', widget.classId.toString());
+    await prefs.setString('selectedTeacherClassName', widget.className);
+    await prefs.setString('selectedTeacherStudentId', studentId);
+    await prefs.setString('selectedTeacherStudentName', _studentName(student));
+    await prefs.setString('selectedTeacherParentId', parentIds);
+    await prefs.setString('selectedTeacherParentName', parentNames);
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ChooseCreneauScreen(isTeacher: true),
       ),
     );
   }
@@ -189,7 +208,7 @@ class _TeacherStudentsParentsScreenState extends State<TeacherStudentsParentsScr
                                     final student = _students[index];
                                     final studentId = student['id']?.toString() ?? '';
                                     final studentName = _studentName(student);
-                                    final parents = _parentsByStudentId[studentId] ?? [];
+                                    final parents = _parentsByStudentId[studentId];
 
                                     return Container(
                                       padding: const EdgeInsets.all(16),
@@ -244,7 +263,16 @@ class _TeacherStudentsParentsScreenState extends State<TeacherStudentsParentsScr
                                             ),
                                           ),
                                           const SizedBox(height: 8),
-                                          if (parents.isEmpty)
+                                          if (parents == null)
+                                            const Padding(
+                                              padding: EdgeInsets.symmetric(vertical: 4),
+                                              child: SizedBox(
+                                                height: 16,
+                                                width: 16,
+                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                              ),
+                                            )
+                                          else if (parents.isEmpty)
                                             Text(
                                               'Aucun parent trouvé',
                                               style: TextStyle(
@@ -256,17 +284,31 @@ class _TeacherStudentsParentsScreenState extends State<TeacherStudentsParentsScr
                                             Wrap(
                                               spacing: 8,
                                               runSpacing: 8,
-                                              children: parents.map((parent) {
-                                                final parentName = _parentName(parent);
-                                                return ActionChip(
-                                                  backgroundColor: const Color(0xffEEF4FF),
-                                                  label: Text(parentName),
-                                                  onPressed: () => _selectParent(
-                                                    student: student,
-                                                    parent: Map<String, dynamic>.from(parent as Map),
+                                              children: [
+                                                ...parents.map((parent) {
+                                                  final parentName = _parentName(parent);
+                                                  return ActionChip(
+                                                    backgroundColor: const Color(0xffEEF4FF),
+                                                    label: Text(parentName),
+                                                    onPressed: () => _selectParent(
+                                                      student: student,
+                                                      parent: Map<String, dynamic>.from(parent as Map),
+                                                    ),
+                                                  );
+                                                }),
+                                                if (parents.length > 1)
+                                                  ActionChip(
+                                                    backgroundColor: const Color(0xff1F4B8F),
+                                                    label: const Text(
+                                                      'Les deux parents',
+                                                      style: TextStyle(color: Colors.white),
+                                                    ),
+                                                    onPressed: () => _selectBothParents(
+                                                      student: student,
+                                                      parents: parents.map((p) => Map<String, dynamic>.from(p as Map)).toList(),
+                                                    ),
                                                   ),
-                                                );
-                                              }).toList(),
+                                              ],
                                             ),
                                         ],
                                       ),

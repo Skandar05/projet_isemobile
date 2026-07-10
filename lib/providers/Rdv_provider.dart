@@ -263,13 +263,14 @@ Future<void> createRDV({
     }
   }
 
-  Future<void> acceptTeacherRDV(dynamic rdvId) async {
+  Future<void> acceptTeacherRDV(int rdvId) async {
     try {
       final response = await http.put(
         Uri.parse(
-          'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/accept',
+          'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/statut',
         ),
         headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'statuts': 'accepte'}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -283,29 +284,16 @@ Future<void> createRDV({
     notifyListeners();
   }
 
-  Future<void> rejectTeacherRDV(
-    dynamic rdvId,
-    String reason, {
-    String newDate = '',
-    String timeStart = '',
-    String timeEnd = '',
-  }) async {
+  Future<void> rejectTeacherRDV(int rdvId) async {
     try {
-      final body = <String, dynamic>{
-        'motifRefus': reason,
-        'status': newDate.isEmpty ? 'rejected' : 'rejected_with_proposal',
-      };
-      if (newDate.isNotEmpty) body['dateProposee'] = newDate;
-      if (timeStart.isNotEmpty) body['heureDebutProposee'] = timeStart;
-      if (timeEnd.isNotEmpty) body['heureFinProposee'] = timeEnd;
-
-      final response = await http.put(
+            final response = await http.put(
         Uri.parse(
-          'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/reject',
+          'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/statut',
         ),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
+        body: jsonEncode({'statuts': 'refuse'}),
       );
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         debugPrint('RDV rejected successfully');
@@ -357,5 +345,6 @@ Future<void> createRDV({
       debugPrint('Error creating teacher RDV: $e');
     }
   }
+
 
 }

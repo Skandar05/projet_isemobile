@@ -2,8 +2,9 @@
 import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
+import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
-import 'package:test/Screens/parent/creationRDV.dart';
+import 'package:test/Screens/Rdv/creationRDV.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -108,10 +109,10 @@ class _RendezVousPageState extends State<RendezVousPage> {
   String _statusLabel(String status) {
     final value = status.toLowerCase();
     if (value.contains('accept') || value.contains('accepte')) {
-      return 'Accepté';
+      return 'Acceptés';
     }
     if (value.contains('refus') || value.contains('rej')) {
-      return 'Refusé';
+      return 'Refusés';
     }
     return 'En attente';
   }
@@ -354,7 +355,14 @@ class _RendezVousPageState extends State<RendezVousPage> {
           ],
         ),
         child: FloatingActionButton(
-          onPressed: _openDisponibiliteConfiguration,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DisponibiliteConfigurationScreen(),
+              ),
+            );
+          },
           backgroundColor: Colors.transparent,
           elevation: 0,
           child: const Icon(Icons.add, size: 28, color: Colors.white),
@@ -526,7 +534,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                             final status =
                                 (rdv['statuts'] ?? rdv['status'] ?? '')
                                     .toString();
-                            return _statusLabel(status) == 'Accepté';
+                            return _statusLabel(status) == 'Acceptés';
                           })
                           .length
                           .toString(),
@@ -543,7 +551,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                             final status =
                                 (rdv['statuts'] ?? rdv['status'] ?? '')
                                     .toString();
-                            return _statusLabel(status) == 'Refusé';
+                            return _statusLabel(status) == 'Refusés';
                           })
                           .length
                           .toString(),
@@ -659,17 +667,17 @@ class _RendezVousPageState extends State<RendezVousPage> {
                             onTap: () => _showRdvDetails(context, rdv),
                             onAccept: _isTeacher && _isPendingStatus(status)
                                 ? () async {
-                                    /* final rdvId = rdv['id'] ?? rdv['idRdv'];
-                                        await rdvProvider.acceptTeacherRDV(rdvId);
-                                        await _fetchRdv(); */
+                                    final rdvId = rdv['id'] ?? rdv['idRdv'];
+                                        await RdvProvider().acceptTeacherRDV(rdvId);
+                                        await _fetchRdv(); 
                                   }
                                 : null,
                             onReject: _isTeacher && _isPendingStatus(status)
                                 ? () async {
-                                    /* final rdvId = rdv['id'] ?? rdv['idRdv'];
-                                        await rdvProvider.rejectTeacherRDV(
+                                    final rdvId = rdv['id'] ?? rdv['idRdv'];
+                                        await RdvProvider().rejectTeacherRDV(
                                           rdvId
-                                        ); */
+                                        );
                                     await _fetchRdv();
                                   }
                                 : null,

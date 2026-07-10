@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:test/Screens/parent/rendezvous_screen.dart';
+import 'package:test/Screens/Rdv/rendezvous_screen.dart';
 import 'package:test/providers/Rdv_provider.dart';
-import 'package:test/Screens/parent/ChooseCreneauScreen.dart';
+import 'package:test/Screens/Rdv/ChooseCreneauScreen.dart';
 
 
 class ChooseContactScreen extends StatefulWidget {
@@ -326,7 +326,7 @@ class _ChooseContactScreenState extends State<ChooseContactScreen> {
                           Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ChooseCreneauScreen(),
+                      builder: (context) => const ChooseCreneauScreen(isTeacher: false),
                     ),
                   );
 

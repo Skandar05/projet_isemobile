@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:test/providers/auth_provider.dart';
 import 'package:test/providers/disponibilite_provider.dart';
@@ -625,30 +624,8 @@ floatingActionButton: FloatingActionButton.extended(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ClasseEnseignant(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Demander un rendez-vous'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff1F4B8F),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+           
+                 
               Text(
                 'Gérez vos plages horaires sans découper les créneaux. Les rendez-vous seront générés dynamiquement plus tard.',
                 style: TextStyle(

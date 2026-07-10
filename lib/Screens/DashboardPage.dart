@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:test/Screens/Parent/home_Parent.dart';
 import 'package:test/Screens/Enseignant/home_Enseignant.dart';
 import 'Widgets/DashboardCard.dart';
-import '../Screens/parent/rendezvous_screen.dart';
+import '../Screens/Rdv/rendezvous_screen.dart';
 import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
 
 class DashboardPage extends StatelessWidget {

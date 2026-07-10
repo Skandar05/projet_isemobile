@@ -93,7 +93,7 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const ChooseCreneauScreen(),
+                                const ChooseCreneauScreen(isTeacher: false),
                           ),
                         );
                       },

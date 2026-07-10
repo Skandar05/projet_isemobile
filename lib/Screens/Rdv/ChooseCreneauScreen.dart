@@ -8,16 +8,21 @@ import 'ConfirmAndSendScreen.dart';
 import 'package:test/Screens/Enseignant/TeacherConfirmRdvScreen.dart';
 
 class ChooseCreneauScreen extends StatefulWidget {
-  const ChooseCreneauScreen({super.key});
+  
+  const ChooseCreneauScreen({super.key,required this.isTeacher});
+  final bool isTeacher;
 
   @override
   State<ChooseCreneauScreen> createState() => _ChooseCreneauScreenState();
+  
 }
 
 class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   String id = '';
   String fullname = '';
   String matiere = '';
+  
+  
 
   int selectedWeekOffset = 0;
   int? selectedDayIndex;

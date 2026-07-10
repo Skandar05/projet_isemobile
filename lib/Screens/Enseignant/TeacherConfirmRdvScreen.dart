@@ -1,7 +1,9 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:test/Screens/parent/ChooseCreneauScreen.dart';
-import 'package:test/Screens/parent/rendezvous_screen.dart';
+import 'package:test/Screens/Rdv/ChooseCreneauScreen.dart';
+import 'package:test/Screens/Rdv/rendezvous_screen.dart';
 
 class TeacherConfirmRdvScreen extends StatefulWidget {
   const TeacherConfirmRdvScreen({super.key});
@@ -21,7 +23,7 @@ class _TeacherConfirmRdvScreenState extends State<TeacherConfirmRdvScreen> {
   String teacherName = '';
   String motif = '';
   int teacherId = 0;
-  int parentId = 0;
+  String parentIdStr = '';
   int studentId = 0;
   int classId = 0;
   bool _loading = true;
@@ -56,7 +58,7 @@ class _TeacherConfirmRdvScreenState extends State<TeacherConfirmRdvScreen> {
           int.tryParse(prefs.getString('idE') ?? '') ??
           int.tryParse(prefs.getString('idEnseignant') ?? '') ??
           0;
-      parentId = int.tryParse(prefs.getString('selectedTeacherParentId') ?? '') ?? 0;
+      parentIdStr = prefs.getString('selectedTeacherParentId') ?? '';
       studentId = int.tryParse(prefs.getString('selectedTeacherStudentId') ?? '') ?? 0;
       classId = int.tryParse(prefs.getString('selectedTeacherClassId') ?? '') ?? 0;
       _loading = false;
@@ -111,7 +113,7 @@ class _TeacherConfirmRdvScreenState extends State<TeacherConfirmRdvScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ChooseCreneauScreen(),
+                            builder: (context) => const ChooseCreneauScreen(isTeacher: true),
                           ),
                         );
                       },
@@ -236,25 +238,62 @@ class _TeacherConfirmRdvScreenState extends State<TeacherConfirmRdvScreen> {
                     icon: const Icon(Icons.send),
                     label: const Text('Envoyer la demande'),
                     onPressed: () async {
-                      // TODO: brancher l'API POST enseignant quand elle sera disponible.
-                      // await rdvProvider.createTeacherRDV(
-                      //   idTeacher: teacherId,
-                      //   idParent: parentId,
-                      //   date: selectedDateDisplay,
-                      //   timeStart: selectedTimeStart,
-                      //   timeEnd: selectedTimeEnd,
-                      //   motif: motif,
-                      //   studentId: studentId,
-                      //   classId: classId,
-                      //   parentName: parentName,
-                      //   parentType: '',
-                      // );
+                      setState(() { _loading = true; });
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('API de création rendez-vous enseignant non encore disponible.'),
-                        ),
-                      );
+                      try {
+                        final prefs = await SharedPreferences.getInstance();
+                        final selectedDate = prefs.getString('selectedDateValue') ?? '';
+                        
+                        final parentIds = parentIdStr.split(',');
+                        bool allSuccess = true;
+
+                        for (final idStr in parentIds) {
+                          final pid = int.tryParse(idStr.trim()) ?? 0;
+                          if (pid == 0) continue;
+                          
+                          final response = await http.post(
+                            Uri.parse('http://apiserv.ise-college-lycee.com:8415/api/rendezvous/enseignant/$teacherId/7'),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({
+                              "id_parent": pid,
+                              "date": selectedDate,
+                              "heureDebut": selectedTimeStart,
+                              "heureFin": selectedTimeEnd,
+                              "motif": motif.isEmpty ? "Réunion concernant l'élève" : motif,
+                            }),
+                          );
+
+                          if (response.statusCode != 200 && response.statusCode != 201) {
+                            allSuccess = false;
+                            debugPrint('Error for parent $pid: ${response.statusCode} - ${response.body}');
+                          }
+                        }
+
+                        if (!mounted) return;
+
+                        setState(() { _loading = false; });
+
+                        if (allSuccess) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Rendez-vous créé avec succès')),
+                          );
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RendezVousPage(isTeacher: true)),
+                            (route) => false,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Erreur lors de la création du rendez-vous.')),
+                          );
+                        }
+                      } catch (e) {
+                        if (!mounted) return;
+                        setState(() { _loading = false; });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erreur réseau : $e')),
+                        );
+                      }
                     },
                   ),
                 ),
