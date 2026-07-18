@@ -21,6 +21,7 @@ class _HomeParentState extends State<HomeParent> {
   bool _isLoading = false;
   List<dynamic> _students = [];
   List<dynamic> _classes = [];
+  final _baseUrl = dotenv.env['BACKEND_URL'];
 
 
   @override
@@ -52,7 +53,7 @@ class _HomeParentState extends State<HomeParent> {
   try {
     final response = await http.get(
       Uri.parse(
-        'http://apiserv.ise-college-lycee.com:8415/GeteleveParent/$idPersonne',
+        '$_baseUrl/GeteleveParent/$idPersonne',
       ),
     );
 
@@ -99,7 +100,7 @@ class _HomeParentState extends State<HomeParent> {
 
     final response = await http.get(
       Uri.parse(
-        'http://apiserv.ise-college-lycee.com:8415/Getclasse/$idetudiant',
+        '$_baseUrl/Getclasse/$idetudiant',
       ),
     );
 

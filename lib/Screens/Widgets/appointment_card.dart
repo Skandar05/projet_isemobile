@@ -201,7 +201,7 @@ class AppointmentCard extends StatelessWidget {
                           child: OutlinedButton.icon(
                             onPressed: onReject,
                             icon: const Icon(Icons.cancel_outlined, size: 18),
-                            label: const Text('Refuser'),
+                            label: const Text('Rejeter'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
                               side: const BorderSide(color: Colors.red),

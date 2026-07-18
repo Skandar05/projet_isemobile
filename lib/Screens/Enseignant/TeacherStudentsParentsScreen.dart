@@ -92,13 +92,37 @@ Future<void> _loadStudentsAndParents() async {
     return (parent['Type'] ?? parent['type'] ?? 'Parent').toString();
   }
 
+  String _parentIdValue(Map<String, dynamic> parent) {
+    final candidates = [
+      parent['id'],
+      parent['idparent'],
+      parent['idParent'],
+      parent['id_parent'],
+      parent['idpersonne'],
+      parent['idPersonne'],
+      parent['id_personne'],
+      parent['idPersonneParent'],
+      parent['parent_id'],
+      parent['parentId'],
+    ];
+
+    for (final candidate in candidates) {
+      final parsed = int.tryParse(candidate?.toString() ?? '');
+      if (parsed != null && parsed > 0) {
+        return parsed.toString();
+      }
+    }
+
+    return '';
+  }
+
   Future<void> _selectParent({
     required Map<String, dynamic> student,
     required Map<String, dynamic> parent,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final studentId = student['id']?.toString() ?? '';
-    final parentId = parent['id']?.toString() ?? parent['idParent']?.toString() ?? '';
+    final parentId = _parentIdValue(parent);
 
     await prefs.setString('rdvFlow', 'teacher');
     await prefs.setString('selectedTeacherClassId', widget.classId.toString());
@@ -126,8 +150,11 @@ Future<void> _loadStudentsAndParents() async {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final studentId = student['id']?.toString() ?? '';
-    
-    final parentIds = parents.map((p) => p['id']?.toString() ?? p['idParent']?.toString() ?? '').where((id) => id.isNotEmpty).join(',');
+
+    final parentIds = parents
+        .map((p) => _parentIdValue(p))
+        .where((id) => id.isNotEmpty)
+        .join(',');
     final parentNames = parents.map((p) => _parentName(p)).join(' & ');
 
     await prefs.setString('rdvFlow', 'teacher');

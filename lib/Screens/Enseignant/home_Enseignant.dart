@@ -4,13 +4,42 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:test/Screens/Auth/Auth.dart';
+import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/screens/DashboardPage.dart';
 
 
 import '../../providers/auth_provider.dart';
 
-class HomeEnseignant extends StatelessWidget {
+class HomeEnseignant extends StatefulWidget {
   const HomeEnseignant({super.key});
+
+
+  @override
+  State<HomeEnseignant> createState() => _HomeEnseignantState();
+}
+
+
+
+
+class _HomeEnseignantState extends State<HomeEnseignant> {
+
+@override
+void initState() {
+  super.initState();
+  // Fetch the teacher's ID when the widget is initialized
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _data();
+  });
+}
+
+
+Future<void> _data() async {
+  final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
+  final EnseignantProvider enseignantProvider = Provider.of<EnseignantProvider>(context, listen: false);
+  int ides = int.parse(authProvider.idE.toString());
+
+  await enseignantProvider.getTeacherinfo(ides);
+}
 
 
   @override

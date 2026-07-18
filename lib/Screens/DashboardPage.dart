@@ -122,7 +122,7 @@ class DashboardPage extends StatelessWidget {
                   children: [
 
                     DashboardCard(
-                      title: isTeacher ? 'Rendez_vous\n(Demandes)' : 'Rendez_vous',
+                      title: isTeacher ? 'Rendez_vous' : 'Rendez_vous',
                       icon: Icons.schedule,
                       iconColor: const Color(0xFF5B9BD5),
 

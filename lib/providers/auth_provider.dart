@@ -22,7 +22,7 @@ class AuthProvider extends ChangeNotifier {
   int? civilite;
   String? matiere;
 
-  final   _baseUrl = dotenv.env['BACKEND_URL'];
+  final _baseUrl = dotenv.env['BACKEND_URL'];
 
   Future<String?> login({
     required String identifier,
@@ -75,14 +75,16 @@ class AuthProvider extends ChangeNotifier {
       token = jwtToken;
       idPersonne = payload['idpersonne'] as int?;
       final prefs = await SharedPreferences.getInstance();
-      
+
+      await prefs.remove('IdteacherInfo');
       await prefs.setInt('idE', idPersonne ?? 0);
-      
+
       role = extractedRole;
 
       // Récupérer le nom/prénom depuis l'API Getpersonne
       if (idPersonne != null) {
         await _fetchPersonneInfo(idPersonne!);
+        await _fetchTeacherInfoForLogin(idPersonne!);
       }
 
       return extractedRole;
@@ -92,6 +94,30 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _fetchTeacherInfoForLogin(int idPers) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/GetEnseignants/$idPers'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data is List && data.isNotEmpty) {
+          final teacherId = data.first['idenseignant'];
+          if (teacherId != null) {
+            final prefs = await SharedPreferences.getInstance();
+            final parsedTeacherId = teacherId as int;
+            await prefs.setInt('IdteacherInfo', parsedTeacherId);
+            await prefs.setInt('idEnseignant', parsedTeacherId);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Erreur GetEnseignants : $e');
     }
   }
 
@@ -130,6 +156,7 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('Erreur Getpersonne : $e');
     }
   }
+  int? get idE => idPersonne;
 
   /// Renvoie le nom complet formaté (Prénom NOM)
   String get fullName {

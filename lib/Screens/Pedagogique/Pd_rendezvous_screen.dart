@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿/* import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
@@ -20,75 +20,14 @@ class RendezVousPage extends StatefulWidget {
 class _RendezVousPageState extends State<RendezVousPage> {
   List<Map<String, dynamic>> _rdvs = [];
   bool _isLoading = false;
-  String _selectedFilter = 'Tous';
-  static const List<String> _statusFilters = [
-    'Tous',
-    'En attente',
-    'Acceptés',
-    'Rejetés',
-  ];
-
-  String _selectedType = 'Mes rendez-vous';
-  static const List<String> _typeFilters = [
-    'Mes rendez-vous',
-    'Rendez-vous reçus',
-  ];
-
-  bool get _isTeacher => widget.isTeacher;
-
-  bool _matchesFilter(Map<String, dynamic> rdv) {
-    if (_selectedFilter == 'Tous') return true;
-    final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-    return _statusLabel(status) == _selectedFilter;
-  }
 
   @override
   void initState() {
     super.initState();
-    _fetchRdv();
+    
   }
 
-  Future<void> _fetchRdv() async {
-    setState(() {
-      _isLoading = true;
-    });
 
-    final rdvProvider = Provider.of<RdvProvider>(context, listen: false);
-    final prefs = await SharedPreferences.getInstance();
-    final int currentUserId = prefs.getInt('idPersonne') ?? 0;
-
-    final int idTeacher = prefs.getInt('IdteacherInfo') ??0;
-    debugPrint('Current user ID: $currentUserId, Teacher ID: $idTeacher');
-
-    final bool showReceived = _selectedType == 'Rendez-vous reçus';
-    final List<Map<String, dynamic>> rdvs = _isTeacher
-        ? (showReceived
-            ? await rdvProvider.getTeacherRDV2(idTeacher)
-            : await rdvProvider.getTeacherRDV(idTeacher))
-        : (showReceived
-            ? await rdvProvider.getParentRDV2(currentUserId)
-            : await rdvProvider.getParentRDV(currentUserId));
-
-    if (mounted) {
-      setState(() {
-        final sortedRdvs = List<Map<String, dynamic>>.from(rdvs);
-        sortedRdvs.sort((a, b) {
-          int parseId(dynamic value) {
-            if (value is int) return value;
-            if (value is String) return int.tryParse(value) ?? 0;
-            if (value is num) return value.toInt();
-            return 0;
-          }
-
-          final aId = parseId(a['id']);
-          final bId = parseId(b['id']);
-          return bId.compareTo(aId);
-        });
-        _rdvs = sortedRdvs;
-        _isLoading = false;
-      });
-    }
-  }
 
   String _formatDuration(String start, String end) {
     start = start.trim();
@@ -145,22 +84,13 @@ class _RendezVousPageState extends State<RendezVousPage> {
                 ' ${rdv['prenomParent'] ?? ''}')
             .trim();
 
-    if (_isTeacher) {
-      return parentName.isEmpty ? 'Parent' : parentName;
-    }
-
     return teacherName.isEmpty ? 'Enseignant' : teacherName;
   }
 
-  void _openNewRdvFlow() {
+/*   void _openNewRdvFlow() {
     Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            _isTeacher ? const ClasseEnseignant() : const ChooseContactScreen(),
-      ),
     );
-  }
+  } */
 
   void _openDisponibiliteConfiguration() {
     Navigator.push(
@@ -237,9 +167,9 @@ class _RendezVousPageState extends State<RendezVousPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: _statusColor(status).withOpacity(0.15),
+                  color: Colors.orange.shade50,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _statusColor(status).withOpacity(0.5)),
+                  border: Border.all(color: Colors.orange.shade100),
                 ),
                 child: Row(
                   children: [
@@ -247,7 +177,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: _statusColor(status),
+                        color: Colors.orange,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -255,7 +185,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                     Text(
                       _statusLabel(status),
                       style: TextStyle(
-                        color: _statusColor(status).withOpacity(0.8),
+                        color: Colors.orange.shade800,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -345,13 +275,10 @@ class _RendezVousPageState extends State<RendezVousPage> {
   @override
   Widget build(BuildContext context) {
     Color primary = const Color(0xff1F4B8F);
-    final actionLabel = _isTeacher
-        ? 'Créer un rendez-vous'
-        : 'Demander un rendez-vous';
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
-     floatingActionButton: _isTeacher
+      floatingActionButton: _isTeacher
     ? Container(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
@@ -399,13 +326,13 @@ class _RendezVousPageState extends State<RendezVousPage> {
                       InkWell(
                         borderRadius: BorderRadius.circular(50),
                         onTap: () {
-                          Navigator.push(
+                          /* Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
                                   DashboardPage(isTeacher: _isTeacher),
                             ),
-                          );
+                          ); */
                         },
                         child: CircleAvatar(
                           backgroundColor: Colors.white,
@@ -593,11 +520,9 @@ class _RendezVousPageState extends State<RendezVousPage> {
                     return Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          if (_selectedType == type) return;
                           setState(() {
                             _selectedType = type;
                           });
-                          _fetchRdv();
                         },
                         child: Container(
                           margin: const EdgeInsets.symmetric(
@@ -723,13 +648,6 @@ class _RendezVousPageState extends State<RendezVousPage> {
                           final time = heureDebut.isEmpty && heureFin.isEmpty
                               ? 'Heure à confirmer'
                               : '$heureDebut - $heureFin';
-                          final bool showActions =
-                              _selectedType == 'Rendez-vous reçus' &&
-                              _isPendingStatus(status);
-                          final rdvProvider = Provider.of<RdvProvider>(
-                            context,
-                            listen: false,
-                          );
 
                           return AppointmentCard(
                             tutorName: contactName,
@@ -740,17 +658,19 @@ class _RendezVousPageState extends State<RendezVousPage> {
                             scolor: _statusColor(status),
                             state: _statusLabel(status),
                             onTap: () => _showRdvDetails(context, rdv),
-                            onAccept: showActions
+                            onAccept: _isTeacher && _isPendingStatus(status)
                                 ? () async {
                                     final rdvId = rdv['id'] ?? rdv['idRdv'];
-                                    await rdvProvider.acceptTeacherRDV(rdvId);
-                                    await _fetchRdv();
+                                        await RdvProvider().acceptTeacherRDV(rdvId);
+                                        await _fetchRdv(); 
                                   }
                                 : null,
-                            onReject: showActions
+                            onReject: _isTeacher && _isPendingStatus(status)
                                 ? () async {
                                     final rdvId = rdv['id'] ?? rdv['idRdv'];
-                                    await rdvProvider.rejectTeacherRDV(rdvId);
+                                        await RdvProvider().rejectTeacherRDV(
+                                          rdvId
+                                        );
                                     await _fetchRdv();
                                   }
                                 : null,
@@ -880,3 +800,4 @@ class _RendezVousPageState extends State<RendezVousPage> {
     );
   }
 }
+ */

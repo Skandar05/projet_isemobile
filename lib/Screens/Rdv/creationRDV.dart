@@ -75,14 +75,8 @@ class _ChooseContactScreenState extends State<ChooseContactScreen> {
                   InkWell(
 
                     onTap: (){
-                       
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RendezVousPage(),
-                    ),
-                  );
-                
+                      Navigator.pop(context);
+
                     },
 
                     child: CircleAvatar(

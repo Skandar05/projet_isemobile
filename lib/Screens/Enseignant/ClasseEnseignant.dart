@@ -29,13 +29,17 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
   Future<void> initData() async {
     final prefs = await SharedPreferences.getInstance();
 
-    idEnseignant = prefs.getInt('idE') ??
-        prefs.getInt('idEnseignant') ??
-        int.tryParse(prefs.getString('idE') ?? '') ??
-        int.tryParse(prefs.getString('idEnseignant') ?? '') ??
-        0;
+    // Read possible int or String stored variants safely
+    int parsePossibleInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      if (v is String) return int.tryParse(v) ?? 0;
+      return 0;
+    }
 
-    debugPrint("ID Enseignant: $idEnseignant");
+    idEnseignant = parsePossibleInt(prefs.get('idE'))
+        ;
+    if (idEnseignant == 0) idEnseignant = parsePossibleInt(prefs.get('idEnseignant'));
 
     if (idEnseignant == 0) {
       if (!mounted) {

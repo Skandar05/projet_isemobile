@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:test/providers/auth_provider.dart';
 import 'package:test/providers/disponibilite_provider.dart';
@@ -36,21 +36,27 @@ class _DisponibiliteConfigurationScreenState
 
 
 Future<void> _loadTeacherAndDisponibilites() async {
-  
-  final AuthProvider authProvider =Provider.of<AuthProvider>(context, listen: false);
-  final RdvProvider GetIdE = Provider.of<RdvProvider>(context,listen:false);
-  final name = authProvider.fullName;
-  GetIdE.selectEnseignant(name);
-  final prefs = await SharedPreferences.getInstance();
+  final authProvider = context.read<AuthProvider>();
+  final personId = authProvider.idE ?? 0;
 
-  final teacherId = prefs.getInt('idEnseignant');
-  
+  if (personId == 0) {
+    if (!mounted) return;
+    setState(() {
+      _teacherId = null;
+    });
+    return;
+  }
+
+  final teacherId = await context.read<EnseignantProvider>().getTeacherinfo(personId);
+
+  debugPrint('Resolved teacher ID: $teacherId');
+
   if (!mounted) {
     return;
   }
 
   setState(() {
-    _teacherId = teacherId;
+    _teacherId = teacherId == null || teacherId == 0 ? null : teacherId;
   });
 
   if (teacherId != null && teacherId != 0) {
@@ -369,7 +375,6 @@ await showModalBottomSheet<void>(
                                   return;
                                 }
                                  final jourExiste = provider.disponibilites.any((d) {
-    // Lors d'une modification, on ignore la disponibilité actuelle
                                     if (isEditing && d['id'] == disponibilite?['id']) {
                                       return false;
                                     }
@@ -637,7 +642,7 @@ floatingActionButton: FloatingActionButton.extended(
               const SizedBox(height: 18),
               Expanded(
                 child: provider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ?const Center(child: CircularProgressIndicator())
                     : provider.disponibilites.isEmpty
                     ? Center(
                         child: Column(

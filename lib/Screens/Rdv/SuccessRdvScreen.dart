@@ -3,10 +3,12 @@ import 'rendezvous_screen.dart';
 
 class SuccessRdvScreen extends StatelessWidget {
   final String enseignantFullname;
+  final bool isTeacher;
 
   const SuccessRdvScreen({
     super.key,
     required this.enseignantFullname,
+    this.isTeacher = false,
   });
 
   @override
@@ -156,14 +158,13 @@ class SuccessRdvScreen extends StatelessWidget {
 
 
                   onPressed: () {
-
-                    Navigator.push(
+                    Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const RendezVousPage(),
+                        builder: (context) => RendezVousPage(isTeacher: isTeacher),
                       ),
+                      (route) => false,
                     );
-
                   },
 
 

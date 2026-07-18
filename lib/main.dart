@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:test/Screens/test.dart';
+import 'package:test/clean.dart';
 import 'package:test/providers/student_provider.dart';
 import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/providers/Rdv_provider.dart';
@@ -29,10 +31,23 @@ Future<void> main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   // This widget is the root of your application.
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+
+  @override
+  void initState() {
+    super.initState();
+    clearAllPreferences();
+    printSharedPreferences();
+
+  }
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

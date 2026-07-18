@@ -1,10 +1,12 @@
 import 'dart:convert';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class DisponibiliteProvider extends ChangeNotifier {
-  static const String _baseUrl = 'http://apiserv.ise-college-lycee.com:8415';
+
+  final _baseUrl = dotenv.env['BACKEND_URL'];
+  
 
   bool isLoading = false;
   String? errorMessage;
@@ -84,17 +86,12 @@ class DisponibiliteProvider extends ChangeNotifier {
   ) async {
     try {
       final url = '$_baseUrl/api/enseignant/disponibilites/$idTeacher';
-      debugPrint('POST URL => $url');
-      debugPrint('POST DATA => $disponibiliteData');
 
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(disponibiliteData),
       );
-
-      debugPrint('STATUS => ${response.statusCode}');
-      debugPrint('BODY => ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         await loadDisponibilites(idTeacher);

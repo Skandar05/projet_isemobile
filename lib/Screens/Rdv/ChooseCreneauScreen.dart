@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'creationRDV.dart';
 import 'ConfirmAndSendScreen.dart';
-import 'package:test/Screens/Enseignant/TeacherConfirmRdvScreen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ChooseCreneauScreen extends StatefulWidget {
   
@@ -22,6 +22,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   String fullname = '';
   String matiere = '';
   
+  final _baseUrl = dotenv.env['BACKEND_URL'];
   
 
   int selectedWeekOffset = 0;
@@ -29,6 +30,10 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   int? selectedSlotIndex;
   bool isLoading = true;
   String? errorMessage;
+  // Debug helpers
+  final bool _showDebug = true;
+  String debugRawResponse = '';
+  int debugResolvedTeacherId = 0;
 
   final List<String> availableDays = [];
   final List<Map<String, String>> allSlots = [];
@@ -46,7 +51,30 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
 
   Future<void> loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedId = prefs.getString("idEnseignant") ?? '';
+    // Try multiple keys: handle int or string stored values
+    String savedId = '';
+    final dynamic rawIdEnseignant = prefs.get('idEnseignant');
+    if (rawIdEnseignant != null) {
+      if (rawIdEnseignant is int) savedId = rawIdEnseignant.toString();
+      else if (rawIdEnseignant is String) savedId = rawIdEnseignant;
+      else savedId = rawIdEnseignant.toString();
+    }
+
+    if (savedId.isEmpty) {
+      final dynamic rawIdE = prefs.get('idE');
+      if (rawIdE != null) {
+        if (rawIdE is int) savedId = rawIdE.toString();
+        else if (rawIdE is String) savedId = rawIdE;
+      }
+    }
+
+    if (savedId.isEmpty) {
+      final dynamic rawIdPersonne = prefs.get('idPersonne');
+      if (rawIdPersonne != null) {
+        if (rawIdPersonne is int) savedId = rawIdPersonne.toString();
+        else if (rawIdPersonne is String) savedId = rawIdPersonne;
+      }
+    }
 
     setState(() {
       id = savedId;
@@ -121,14 +149,17 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     }
 
     try {
-      debugPrint('$teacherId');
-      final url = 'http://apiserv.ise-college-lycee.com:8415/api/enseignant/disponibilites/$teacherId';
-      
+      debugPrint('fetchDisponibilites teacherId=$teacherId');
+      final url = '$_baseUrl/api/enseignant/disponibilites/$teacherId';
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-      );
+      // add a timeout to avoid hanging the UI indefinitely
+        final response = await http
+          .get(Uri.parse(url), headers: {'Content-Type': 'application/json'})
+          .timeout(const Duration(seconds: 10));
+
+        // expose debug info
+        debugRawResponse = response.body ?? '';
+        debugResolvedTeacherId = teacherId;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -187,11 +218,13 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
       }
     } catch (e) {
       errorMessage = 'Erreur réseau : $e';
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
-
-    setState(() {
-      isLoading = false;
-    });
   }
 
   DateTime _startOfWeek(DateTime date) {
@@ -366,13 +399,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                 children: [
                   InkWell(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const ChooseContactScreen(),
-                        ),
-                      );
+                      Navigator.pop(context);
                     },
                     child: const CircleAvatar(
                       backgroundColor: Colors.white,
@@ -711,9 +738,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => flow == 'teacher'
-                                  ? const TeacherConfirmRdvScreen()
-                                  : const ConfirmAndSendScreen(),
+                              builder: (context) =>
+                                  ConfirmAndSendScreen(isTeacher: widget.isTeacher),
                             ),
                           );
                         }

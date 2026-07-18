@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class StudentProvider extends ChangeNotifier {
 
   String? idEleve;
   String? idClasse;
-
+  final _baseUrl = dotenv.env['BACKEND_URL'];
 
 
   // SAVE

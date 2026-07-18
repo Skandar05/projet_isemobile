@@ -6,11 +6,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'student_provider.dart';
 import 'package:test/providers/EnseignantProvider.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class RdvProvider extends ChangeNotifier {
   int? idParent;
   int? idEnseignant;
   int? classId;
-
+  final _baseUrl = dotenv.env['BACKEND_URL'];
   List<Map<String, dynamic>> enseignants = [];
 
 
@@ -36,7 +38,7 @@ class RdvProvider extends ChangeNotifier {
       try {
         final response = await http.get(
           Uri.parse(
-            'http://apiserv.ise-college-lycee.com:8415/GetEnseignantsParClasse/$classId/7',
+            '$_baseUrl/GetEnseignantsParClasse/$classId/7',
           ),
           headers: {'Content-Type': 'application/json'},
         );
@@ -86,13 +88,13 @@ class RdvProvider extends ChangeNotifier {
 
 
 
-  Future<void> selectEnseignant(String fullName) async {
+  Future<int> selectEnseignant(String fullName) async {
   final String name = fullName.trim();
-
+  int idfinalE= 0;
   try {
     final response = await http.get(
       Uri.parse(
-        'http://apiserv.ise-college-lycee.com:8415/GetIdEnseignants/',
+        '$_baseUrl/GetIdEnseignants/',
       ),
       headers: {'Content-Type': 'application/json'},
     );
@@ -109,7 +111,7 @@ class RdvProvider extends ChangeNotifier {
 
       if (enseignant != null) {
         idEnseignant = enseignant['idenseignant'];
-        int idfinalE =idEnseignant ?? 0;
+        idfinalE =idEnseignant ?? 0;
 
       if (idEnseignant != null) {
         final prefs = await SharedPreferences.getInstance();
@@ -132,7 +134,7 @@ class RdvProvider extends ChangeNotifier {
   }
 
   notifyListeners();
-
+  return idfinalE ;
   
 }
 
@@ -161,6 +163,59 @@ Future<void> saveSelectedEnseignant({
 
 }
 
+  Future<int> resolveParentId(int idPersonne) async {
+    if (idPersonne <= 0) return 0;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/Getpersonnemobile/$idPersonne'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+
+        if (data is Map<String, dynamic>) {
+          final candidates = [
+            data['id_parent'],
+            data['idParent'],
+            data['idparent'],
+            data['idpersonne'],
+          ];
+
+          for (final value in candidates) {
+            final parsed = int.tryParse(value?.toString() ?? '');
+            if (parsed != null && parsed > 0) return parsed;
+          }
+        } else if (data is List) {
+          for (final item in data) {
+            if (item is Map<String, dynamic>) {
+              final candidates = [
+                item['id_parent'],
+                item['idParent'],
+                item['idparent'],
+                item['idpersonne'],
+              ];
+
+              for (final value in candidates) {
+                final parsed = int.tryParse(value?.toString() ?? '');
+                if (parsed != null && parsed > 0) 
+                
+                return parsed;
+              }
+            }
+          }
+        }
+      } else {
+        debugPrint('Failed to resolve parent id: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error resolving parent id: $e');
+    }
+
+    return 0;
+  }
+
 Future<void> createRDV({
   required int idParent,
   required int idEnseignant,
@@ -172,10 +227,13 @@ Future<void> createRDV({
 }) async {
   final debutTemp = (heureDebut ?? temp.split('-')[0]).trim();
   final finTemp = (heureFin ?? temp.split('-')[1]).trim();
-
+  final resolvedParentId = await resolveParentId(idParent);
+  final effectiveParentId = resolvedParentId > 0 ? resolvedParentId : idParent;
+  final String dmd = 'parent';
+  
   try {
     final response = await http.post(
-      Uri.parse('http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$idParent/7'),
+      Uri.parse('$_baseUrl/api/rendezvous/$effectiveParentId/7'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         "id_enseignant": idEnseignant,
@@ -183,6 +241,7 @@ Future<void> createRDV({
         "heureDebut": debutTemp,
         "heureFin": finTemp,
         "motif": motif,
+        "demandeur_role": dmd
       }),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -196,10 +255,61 @@ Future<void> createRDV({
 }
 
   Future<List<Map<String, dynamic>>> getParentRDV(int idParent) async {
+  final int test = int.parse(idParent.toString());
+  
+  final resolvedParentId = await resolveParentId(idParent);
+  final effectiveParentId = resolvedParentId > 0 ? resolvedParentId : idParent;
+  
+
   try {
     final response = await http.get(
       Uri.parse(
-        'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/personne/$idParent',
+        '$_baseUrl/api/rendezvous/personne/$effectiveParentId',
+      ),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final dynamic data = jsonDecode(response.body);
+      debugPrint('Fetched parent RDVs: $data');
+
+      if (data is List) {
+        return data
+            .where(
+        (rdv) =>
+            rdv['demandeur_role']
+                ?.toString()
+                .toLowerCase() ==
+            'parent',
+      )
+            .map((rdv) => rdv as Map<String, dynamic>)
+            .toList();
+      }
+
+      if (data is Map<String, dynamic>) {
+        return [data];
+      }
+
+      return [];
+    } else {
+      debugPrint('Failed to fetch parent RDVs: ${response.statusCode}');
+      return [];
+    }
+  } catch (e) {
+    debugPrint('Error fetching RDVs: $e');
+    return [];
+  }
+}
+
+
+  Future<List<Map<String, dynamic>>> getParentRDV2(int idParent) async {
+  final resolvedParentId = await resolveParentId(idParent);
+  final effectiveParentId = resolvedParentId > 0 ? resolvedParentId : idParent;
+
+  try {
+    final response = await http.get(
+      Uri.parse(
+        '$_baseUrl/api/rendezvous/personne/$effectiveParentId',
       ),
       headers: {'Content-Type': 'application/json'},
     );
@@ -207,8 +317,16 @@ Future<void> createRDV({
     if (response.statusCode == 200) {
       final dynamic data = jsonDecode(response.body);
 
+
       if (data is List) {
         return data
+            .where(
+        (rdv) =>
+            rdv['demandeur_role']
+                ?.toString()
+                .toLowerCase() ==
+            'enseignant',
+      )
             .map((rdv) => rdv as Map<String, dynamic>)
             .toList();
       }
@@ -234,7 +352,7 @@ Future<void> createRDV({
     try {
       final response = await http.get(
         Uri.parse(
-          'http://apiserv.ise-college-lycee.com:8415/getRendezvousEnseignant/$idTeacher',
+          '$_baseUrl/GetRendezVousEnseignantParent/$idTeacher',
         ),
         headers: {'Content-Type': 'application/json'},
       );
@@ -244,6 +362,53 @@ Future<void> createRDV({
 
         if (data is List) {
           return data
+              .where(
+        (rdv) =>
+            rdv['demandeur_role']
+                ?.toString()
+                .toLowerCase() ==
+            'enseignant',
+            )
+              .map((rdv) => rdv as Map<String, dynamic>)
+              .toList();
+        }
+
+        if (data is Map<String, dynamic>) {
+          return [data];
+        }
+
+        return [];
+      } else {
+        debugPrint('Failed to fetch teacher RDVs: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Error fetching teacher RDVs: $e');
+      return [];
+    }
+  }
+
+    Future<List<Map<String, dynamic>>> getTeacherRDV2(int idTeacher) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '$_baseUrl/GetRendezVousEnseignantParent/$idTeacher',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+
+        if (data is List) {
+          return data
+              .where(
+        (rdv) =>
+            rdv['demandeur_role']
+                ?.toString()
+                .toLowerCase() ==
+            'parent',
+            )
               .map((rdv) => rdv as Map<String, dynamic>)
               .toList();
         }
@@ -267,7 +432,7 @@ Future<void> createRDV({
     try {
       final response = await http.put(
         Uri.parse(
-          'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/statut',
+          '$_baseUrl/api/rendezvous/$rdvId/statut',
         ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'statuts': 'accepte'}),
@@ -288,7 +453,7 @@ Future<void> createRDV({
     try {
             final response = await http.put(
         Uri.parse(
-          'http://apiserv.ise-college-lycee.com:8415/api/rendezvous/$rdvId/statut',
+          '$_baseUrl/api/rendezvous/$rdvId/statut',
         ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'statuts': 'refuse'}),
@@ -313,36 +478,32 @@ Future<void> createRDV({
     required String timeStart,
     required String timeEnd,
     required String motif,
-    required int studentId,
-    required int classId,
-    String? parentName,
-    String? parentType,
   }) async {
+    final resolvedParentId = await resolveParentId(idParent);
+    final effectiveParentId = resolvedParentId > 0 ? resolvedParentId : idParent;
+  debugPrint('Creating RDV for teacher $idTeacher with parent $effectiveParentId on $date from $timeStart to $timeEnd for motif: $motif');
     try {
       final response = await http.post(
-        Uri.parse('http://apiserv.ise-college-lycee.com:8415/getRendezvousEnseignant/$idTeacher'),
+        Uri.parse('$_baseUrl/api/rendezvous/enseignant/$idTeacher/7'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "id_parent": idParent,
-          "id_eleve": studentId,
-          "id_classe": classId,
+          "id_parent": effectiveParentId,
+          "id_personne": idParent,
           "date": date,
           "heureDebut": timeStart,
           "heureFin": timeEnd,
           "motif": motif,
-          "nomParent": parentName,
-          "typeParent": parentType,
-          "status": "pending",
+          "demandeur_role": "enseignant"
         }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        debugPrint('Teacher RDV created successfully');
+        debugPrint('RDV created successfully by teacher');
       } else {
-        debugPrint('Failed to create teacher RDV: ${response.statusCode}');
+        debugPrint('Failed to create RDV by teacher: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error creating teacher RDV: $e');
+      debugPrint('Error creating RDV by teacher: $e');
     }
   }
 
