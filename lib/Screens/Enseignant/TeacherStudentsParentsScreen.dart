@@ -18,6 +18,27 @@ class TeacherStudentsParentsScreen extends StatefulWidget {
   State<TeacherStudentsParentsScreen> createState() => _TeacherStudentsParentsScreenState();
 }
 
+String resolveParentPersonId(Map<String, dynamic> parent) {
+  final candidates = [
+    parent['idpersonne'],
+    parent['idPersonne'],
+    parent['id_personne'],
+    parent['idparent'],
+    parent['idParent'],
+    parent['id_parent'],
+    parent['id'],
+  ];
+
+  for (final candidate in candidates) {
+    final parsed = int.tryParse(candidate?.toString() ?? '');
+    if (parsed != null && parsed > 0) {
+      return parsed.toString();
+    }
+  }
+
+  return '';
+}
+
 class _TeacherStudentsParentsScreenState extends State<TeacherStudentsParentsScreen> {
   bool isLoading = false;
   String? errorMessage;
@@ -93,27 +114,7 @@ Future<void> _loadStudentsAndParents() async {
   }
 
   String _parentIdValue(Map<String, dynamic> parent) {
-    final candidates = [
-      parent['id'],
-      parent['idparent'],
-      parent['idParent'],
-      parent['id_parent'],
-      parent['idpersonne'],
-      parent['idPersonne'],
-      parent['id_personne'],
-      parent['idPersonneParent'],
-      parent['parent_id'],
-      parent['parentId'],
-    ];
-
-    for (final candidate in candidates) {
-      final parsed = int.tryParse(candidate?.toString() ?? '');
-      if (parsed != null && parsed > 0) {
-        return parsed.toString();
-      }
-    }
-
-    return '';
+    return resolveParentPersonId(parent);
   }
 
   Future<void> _selectParent({

@@ -137,8 +137,15 @@ class EnseignantProvider extends ChangeNotifier {
 
             final rawParents = item['parents'] as List<dynamic>? ?? [];
             parentsByEleve[eleveId.toString()] = rawParents.map((p) {
+              final parentId = p['idparent'] ?? 0;
+              final personId = p['idpersonne'] ?? p['idPersonne'] ?? p['id_personne'] ?? 0;
+
               return {
-                'id': p['idparent'] ?? 0,
+                'id': parentId,
+                'idparent': parentId,
+                'idpersonne': personId,
+                'idPersonne': personId,
+                'id_personne': personId,
                 'nomfr': p['nomfr'] ?? '',
                 'prenomfr': p['prenomfr'] ?? '',
                 'type': p['type'] ?? '',
