@@ -21,7 +21,7 @@ class PdProvider extends ChangeNotifier {
   }
 
   final response = await _client.get(
-    Uri.parse('$baseUrl/api/rendezvous/demandeur/$demandeurRole'),
+    Uri.parse('$baseUrl/api/rendezvous/demandeurs/$demandeurRole'),
     headers: {
       'Content-Type': 'application/json',
     },
@@ -34,6 +34,7 @@ class PdProvider extends ChangeNotifier {
   }
 
   final decoded = jsonDecode(response.body);
+  debugPrint('Fetched ${decoded.length} rendezvous for role $demandeurRole');
 
   if (decoded is! List) {
     throw Exception('Unexpected response format');
@@ -47,6 +48,7 @@ Future<Map<String, String>> getPvCount() async {
   final List<String> roles = [
     'enseignant',
     'parent',
+    'Pedagogique',
   ];
 
   Map<String, String> counts = {};
@@ -57,7 +59,7 @@ Future<Map<String, String>> getPvCount() async {
 
   for (final role in roles) {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/rendezvous/demandeur/$role'),
+      Uri.parse('$baseUrl/api/rendezvous/demandeurs/$role'),
       headers: {
         'Content-Type': 'application/json',
       },

@@ -11,11 +11,12 @@ class AppointmentCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
+  final String? pv; // Added pv field
   
 
   const AppointmentCard({
     super.key,
-    required this.tutorName,
+    this.tutorName = '',
     required this.subject,
     required this.duration,
     required this.date,
@@ -25,6 +26,7 @@ class AppointmentCard extends StatelessWidget {
     this.onTap,
     this.onAccept,
     this.onReject,
+    this.pv, // Initialize pv
   });
 
   @override

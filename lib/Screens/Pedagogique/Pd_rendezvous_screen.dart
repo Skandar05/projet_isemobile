@@ -84,9 +84,10 @@ class _Pd_rendezvous_screenState extends State<Pd_rendezvous_screen> {
     'parent': <Map<String, dynamic>>[],
     'enseignant': <Map<String, dynamic>>[],
   };
+  bool ishighlighted =false;
   bool _isLoading = false;
   bool isPedagogique = true;
-  String _isselected = 'pedagogiques';
+  String _isselected = 'Pedagogique';
   String _selectedFilter = 'Tous';
   final List<String> _statusFilters = ['Tous', 'En attente', 'Acceptés', 'Rejetés'];
 
@@ -122,7 +123,7 @@ Future<void> loadCounts() async {
         pdProvider = PdProvider();
       }
 
-      final roles = ['pedagogiques', 'parent', 'enseignant'];
+      final roles = ['Pedagogique', 'parent', 'enseignant'];
       final results = await Future.wait(roles.map((role) async {
         final rdvs = await pdProvider.getAllRdv(role);
         return MapEntry(role, normalizeRdvs(rdvs));
@@ -243,39 +244,114 @@ Future<void> loadCounts() async {
   String _extractText(Map<String, dynamic> rdv, List<String> keys) {
     for (final key in keys) {
       final value = rdv[key];
-      if (value is String && value.trim().isNotEmpty) {
-        return value.trim();
-      }
-      if (value != null && value.toString().trim().isNotEmpty) {
-        return value.toString().trim();
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty) {
+          return trimmed;
+        }
+      } else if (value is num) {
+        return value.toString();
+      } else if (value != null) {
+        final trimmed = value.toString().trim();
+        if (trimmed.isNotEmpty) {
+          return trimmed;
+        }
       }
     }
     return '';
   }
 
   String _contactName(Map<String, dynamic> rdv) {
-    final firstName = _extractText(rdv, ['prenomContact', 'prenom', 'prenomDemandeur', 'firstName']);
-    final lastName = _extractText(rdv, ['nomContact', 'nom', 'nomDemandeur', 'lastName']);
+    final directContact = _extractText(rdv, [
+      'nom_parent',
+      'nomParent',
+      'nom_contact',
+      'nomContact',
+      'contactName',
+      'nom_enseignant',
+      'nomEnseignant',
+      'nomTeacher',
+    ]);
+
+    if (directContact.isNotEmpty) {
+      return directContact;
+    }
+
+    final firstName = _extractText(rdv, [
+      'prenomContact',
+      'prenom',
+      'prenomDemandeur',
+      'firstName',
+      'prenom_parent',
+      'prenomParent',
+      'prenom_enseignant',
+      'prenomEnseignant',
+    ]);
+    final lastName = _extractText(rdv, [
+      'nomContact',
+      'nom',
+      'nomDemandeur',
+      'lastName',
+      'nom_parent',
+      'nomParent',
+      'nom_enseignant',
+      'nomEnseignant',
+    ]);
     final displayName = [firstName, lastName].where((value) => value.isNotEmpty).join(' ').trim();
     return displayName.isEmpty ? 'Nom non renseigné' : displayName;
+  }
+
+  String _senderName(Map<String, dynamic> rdv) {
+    switch (_isselected) {
+      case 'parent':
+        return _extractText(rdv, ['nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
+      case 'enseignant':
+        return _extractText(rdv, ['nom_enseignant', 'nomEnseignant', 'nomTeacher']);
+      case 'Pedagogique':
+      default:
+        return _extractText(rdv, ['nom_pedagogique', 'nomPedagogique', 'nom_pc', 'nomPC', 'pedagogique'])
+            .isNotEmpty
+            ? _extractText(rdv, ['nom_pedagogique', 'nomPedagogique', 'nom_pc', 'nomPC', 'pedagogique'])
+            : 'Pédagogique';
+    }
+  }
+
+  String _receiverName(Map<String, dynamic> rdv) {
+    switch (_isselected) {
+      case 'parent':
+        return _extractText(rdv, ['nom_enseignant', 'nomEnseignant', 'nomTeacher', 'nom_pedagogique', 'nomPedagogique', 'nom_pc', 'nomPC', 'pedagogique']);
+      case 'enseignant':
+        return _extractText(rdv, ['nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
+      case 'Pedagogique':
+      default:
+        return _extractText(rdv, ['nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact', 'nom_enseignant', 'nomEnseignant', 'nomTeacher']);
+    }
   }
 
   void _showRdvDetails(BuildContext context, Map<String, dynamic> rdv) {
     final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
     final contactName = _contactName(rdv);
-    final subject = _extractText(rdv, ['nomMatiere', 'matiere', 'sujet', 'motif', 'objet', 'titre']);
-    final date = (rdv['date'] ?? '').toString().trim();
-    final heureDebut = (rdv['heureDebut'] ?? '').toString().trim();
-    final heureFin = (rdv['heureFin'] ?? '').toString().trim();
-    final motif = (rdv['motif'] ?? '').toString().trim();
-    final eleveName = ('${rdv['prenomEleve'] ?? ''} ${rdv['nomEleve'] ?? ''}').trim();
-    final classe = (rdv['classeEleve'] ?? '').toString().trim();
+    final senderName = _senderName(rdv);
+    final receiverName = _receiverName(rdv);
+    final subject = _extractText(rdv, ['motif', 'nomMatiere', 'matiere', 'sujet', 'objet', 'titre', 'nom_matiere']);
+    final date = _extractText(rdv, ['date', 'jour', 'dateRdv']);
+    final heureDebut = _extractText(rdv, ['heureDebut', 'heure_debut', 'debut', 'startTime']);
+    final heureFin = _extractText(rdv, ['heureFin', 'heure_fin', 'fin', 'endTime']);
+    final motif = _extractText(rdv, ['motif', 'motifRdv', 'details', 'note']);
+    final eleveFirstName = _extractText(rdv, ['prenom_eleve', 'prenomEleve', 'prenom', 'firstName']);
+    final eleveLastName = _extractText(rdv, ['nom_eleve', 'nomEleve', 'nom', 'lastName']);
+    final eleveName = [eleveFirstName, eleveLastName].where((value) => value.isNotEmpty).join(' ').trim();
     final eleveLine = eleveName.isEmpty
+        ? _extractText(rdv, ['nom_eleve', 'nomEleve', 'eleve'])
+        : '$eleveName${_extractText(rdv, ['classe', 'classeEleve', 'classe_eleve', 'niveau']).isEmpty ? '' : ' • ${_extractText(rdv, ['classe', 'classeEleve', 'classe_eleve', 'niveau'])}'}';
+    final classe = _extractText(rdv, ['classe', 'classeEleve', 'classe_eleve', 'niveau']);
+    final eleveDisplay = eleveName.isEmpty
         ? 'Élève non renseigné'
         : '$eleveName${classe.isEmpty ? '' : ' • $classe'}';
     final time = heureDebut.isEmpty && heureFin.isEmpty
         ? 'Heure à confirmer'
         : '$heureDebut - $heureFin';
+    final pv = _extractText(rdv, ['pv', 'pvRdv', 'compteRendu', 'compte_rendu', 'rapport', 'report']);
 
     showModalBottomSheet(
       context: context,
@@ -324,9 +400,9 @@ Future<void> loadCounts() async {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: _statusColor(status).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.orange.shade100),
+                  border: Border.all(color: _statusColor(status).withOpacity(0.5)),
                 ),
                 child: Row(
                   children: [
@@ -334,7 +410,7 @@ Future<void> loadCounts() async {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: Colors.orange,
+                        color: _statusColor(status),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -342,7 +418,7 @@ Future<void> loadCounts() async {
                     Text(
                       _statusLabel(status),
                       style: TextStyle(
-                        color: Colors.orange.shade800,
+                        color: _statusColor(status).withOpacity(0.8),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -351,10 +427,17 @@ Future<void> loadCounts() async {
               ),
               const SizedBox(height: 20),
               _detailRow(
-                icon: Icons.person,
-                title: 'Contact',
-                value: subject.isEmpty ? contactName : '$contactName • $subject',
+                icon: Icons.send,
+                title: 'Expéditeur',
+                value: senderName.isEmpty ? 'Non renseigné' : senderName,
               ),
+              const SizedBox(height: 14),
+              _detailRow(
+                icon: Icons.inbox,
+                title: 'Destinataire',
+                value: receiverName.isEmpty ? 'Non renseigné' : receiverName,
+              ),
+              
               const SizedBox(height: 14),
               _detailRow(
                 icon: Icons.calendar_today,
@@ -368,7 +451,7 @@ Future<void> loadCounts() async {
                 value: time,
               ),
               const SizedBox(height: 14),
-              _detailRow(icon: Icons.school, title: 'Élève', value: eleveLine),
+              _detailRow(icon: Icons.school, title: 'Élève', value: eleveDisplay),
               if (motif.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 _detailRow(
@@ -378,6 +461,13 @@ Future<void> loadCounts() async {
                   valueStyle: const TextStyle(fontStyle: FontStyle.italic),
                 ),
               ],
+
+              const SizedBox(height: 14),
+              _detailRow(
+                icon: Icons.description,
+                title: 'pv',
+                value: subject.isEmpty ? pv : '$pv ',
+              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -508,17 +598,19 @@ Future<void> loadCounts() async {
                 children: [
                   Expanded(
                     child: categoryCard(
-                      count: rdvCounts['pedagogique'] ?? rdvCounts['pedagogiques'] ?? '0',
+                      count: rdvCounts['Pedagogique'] ?? rdvCounts['Pedagogique'] ?? '0',
                       title: 'Pédagogiques',
                       icon: Icons.school,
                       background: const Color(0xffF3F7FF),
                       iconBackground: const Color(0xffDCEBFF),
                       color: const Color(0xff377DFF),
+                      isSelected: _isselected == 'Pedagogique',
                       ontap: () {
                         setState(() {
-                          _isselected = 'pedagogiques';
+                          _isselected = 'Pedagogique';
                           _rdvs.clear();
-                          _rdvs.addAll(_rdvsByRole['pedagogiques'] ?? <Map<String, dynamic>>[]);
+                          _rdvs.addAll(_rdvsByRole['Pedagogique'] ?? <Map<String, dynamic>>[]);
+                          debugPrint('Selected rdvs for Pedagogique: ${_rdvs.length}');
                         });
                       },
                     ),
@@ -532,6 +624,7 @@ Future<void> loadCounts() async {
                       background: const Color(0xffFAF5FF),
                       iconBackground: const Color(0xffEAD9FF),
                       color: const Color(0xff7B4FD6),
+                      isSelected: _isselected == 'parent',
                       ontap: () {
                         setState(() {
                           _isselected = 'parent';
@@ -553,6 +646,7 @@ Future<void> loadCounts() async {
                       background: const Color(0xffF2FCF8),
                       iconBackground: const Color(0xffD7F5E8),
                       color: const Color(0xff35B88A),
+                      isSelected: _isselected == 'enseignant',
                       ontap: () {
                         setState(() {
                           _isselected = 'enseignant';
@@ -674,6 +768,7 @@ Future<void> loadCounts() async {
                               final time = heureDebut.isEmpty && heureFin.isEmpty
                                   ? 'Heure à confirmer'
                                   : '$heureDebut - $heureFin';
+                              final pv = _extractText(rdv, ['pv', 'pvRdv', 'pvRendezvous']);
 
                               return AppointmentCard(
                                 tutorName: contactName,
@@ -684,6 +779,7 @@ Future<void> loadCounts() async {
                                 scolor: _statusColor(status),
                                 state: _statusLabel(status),
                                 onTap: () => _showRdvDetails(context, rdv),
+                                pv: pv,
                               );
                             },
                           ),
@@ -829,41 +925,46 @@ Widget categoryCard({
   required Color background,
   required Color iconBackground,
   required Color color,
+  required bool isSelected,
   required VoidCallback? ontap,
 }) {
   return InkWell(
     onTap: ontap,
     borderRadius: BorderRadius.circular(22),
-    child: Container(
-      height: 160,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: color.withValues(alpha: 0.25),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    child: Transform.scale(
+      scale: isSelected ? 1.03 : 1.0,
+      child: Container(
+        height: isSelected ? 170 : 160,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isSelected ? color : color.withValues(alpha: 0.25),
+            width: isSelected ? 1.6 : 1.2,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? color.withValues(alpha: 0.18)
+                  : Colors.black.withValues(alpha: 0.03),
+              blurRadius: isSelected ? 14 : 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
           Container(
-            width: 55,
-            height: 55,
+            width: isSelected ? 58 : 55,
+            height: isSelected ? 58 : 55,
             decoration: BoxDecoration(
               color: iconBackground,
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
-              size: 28,
+              size: isSelected ? 30 : 28,
               color: color,
             ),
           ),
@@ -871,7 +972,7 @@ Widget categoryCard({
           Text(
             count,
             style: TextStyle(
-              fontSize: 28,
+              fontSize: isSelected ? 30 : 28,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -880,14 +981,15 @@ Widget categoryCard({
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
+            style: TextStyle(
+              fontSize: isSelected ? 14 : 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xff222222),
+              color: const Color(0xff222222),
             ),
           ),
         ],
       ),
     ),
+  ),
   );
 }
