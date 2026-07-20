@@ -282,4 +282,86 @@ Future<int?> _fetchTeacherInfo(int idPersonne) async {
 
   return null;
 }
+
+
+Future<void>createPv(int idRdv, String pvContent,int idEnseignant) async {
+  try {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/api/pvrendezvous/${idRdv}/${idEnseignant}'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        
+        'message': pvContent,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      debugPrint('PV created successfully for RDV ID: $idRdv');
+    } else {
+      debugPrint('Failed to create PV. Status code: ${response.statusCode}');
+    }
+  } catch (e) {
+    debugPrint('Error creating PV: $e');
+  }
+}
+
+
+Future<Map<String, dynamic>?> getPv(
+    int idRdv,
+    int idEnseignant,
+) async {
+  try {
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/api/pvrendezvous/'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+
+      for (final item in data) {
+        if (item['id_rendezvous'] == idRdv &&
+            item['id_enseignant'] == idEnseignant) {
+          debugPrint('PV found: $item');
+          return Map<String, dynamic>.from(item);
+        }
+      }
+
+      debugPrint('No PV found');
+      return null;
+    }
+
+    debugPrint('Status code: ${response.statusCode}');
+  } catch (e) {
+    debugPrint('Error: $e');
+  }
+
+  return null;
+}
+Future<String> UpdatePv(int idPv, String newContent) async {
+
+  String updatedMessage = '';
+  try{
+    final response = await _client.put(
+      Uri.parse('$_baseUrl/api/pvrendezvous/$idPv'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'message': newContent,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      updatedMessage = newContent;
+      debugPrint('PV updated successfully for PV ID: $idPv');
+    } else {
+      debugPrint('Failed to update PV. Status code: ${response.statusCode}');
+    }
+  } catch (e) {
+    debugPrint('Error updating PV: $e');
+  }return updatedMessage;
+}
+
+
+
+
 }

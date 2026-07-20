@@ -4,15 +4,19 @@ import 'package:test/Screens/Enseignant/home_Enseignant.dart';
 import 'Widgets/DashboardCard.dart';
 import '../Screens/Rdv/rendezvous_screen.dart';
 import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
+import 'package:test/Screens/Pedagogique/Pd_rendezvous_screen.dart';
+import 'package:test/Screens/Pedagogique/home_Pedagogique.dart';
 
 class DashboardPage extends StatelessWidget {
   final bool isTeacher;
+  final bool isPedagogique;
   final String? classId;
   final String? className;
 
   const DashboardPage({
     super.key,
     this.isTeacher = false,
+    this.isPedagogique = false,
     this.classId,
     this.className,
   });
@@ -43,9 +47,11 @@ class DashboardPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => isTeacher 
+                          builder: (context) => isTeacher
                               ? const HomeEnseignant()
-                              : const HomeParent(),
+                              : isPedagogique
+                                  ? const HomeCScreen()
+                                  : const HomeParent(),
                         ),
                       );
                     },
@@ -127,16 +133,28 @@ class DashboardPage extends StatelessWidget {
                       iconColor: const Color(0xFF5B9BD5),
 
                       onTap: () {
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => isTeacher 
-                                  ? const RendezVousPage(isTeacher: true)
-                                  : const RendezVousPage(),
-                          ),
-                        );
-
+                        if (isPedagogique) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const Pd_rendezvous_screen(),
+                            ),
+                          );
+                        } else if (isTeacher) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RendezVousPage(isTeacher: true),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RendezVousPage(),
+                            ),
+                          );
+                        }
                       },
                     ),
 

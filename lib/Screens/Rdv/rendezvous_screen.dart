@@ -5,6 +5,7 @@ import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
 import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/Screens/Rdv/creationRDV.dart';
+import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,6 +22,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
   List<Map<String, dynamic>> _rdvs = [];
   bool _isLoading = false;
   String _selectedFilter = 'Tous';
+  final TextEditingController _pvController = TextEditingController();
   static const List<String> _statusFilters = [
     'Tous',
     'En attente',
@@ -46,6 +48,12 @@ class _RendezVousPageState extends State<RendezVousPage> {
   void initState() {
     super.initState();
     _fetchRdv();
+  }
+
+  @override
+  void dispose() {
+    _pvController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchRdv() async {
@@ -171,7 +179,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
     );
   }
 
-  void _showRdvDetails(BuildContext context, Map<String, dynamic> rdv) {
+  Future<void> _showRdvDetails(BuildContext context, Map<String, dynamic> rdv) async {
     final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
     final contactName = _contactName(rdv);
     final subject = (rdv['nomMatiere'] ?? rdv['matiere'] ?? rdv['sujet'] ?? '')
@@ -189,6 +197,27 @@ class _RendezVousPageState extends State<RendezVousPage> {
     final time = heureDebut.isEmpty && heureFin.isEmpty
         ? 'Heure à confirmer'
         : '$heureDebut - $heureFin';
+    final bool shouldShowPvSection = _isTeacher && _statusLabel(status) == 'Acceptés';
+    final String initialPv = (rdv['commentaire'] ?? rdv['pv'] ?? rdv['note'] ?? '')
+        .toString();
+
+    final int rdvId = rdv['id'] ?? rdv['idRdv'] ?? 0;
+    final int enseignantId =
+        rdv['idEnseignant'] ?? rdv['idenseignant'] ?? 0;
+    final Map<String, dynamic>? pvData = await context.read<EnseignantProvider>().getPv(
+          rdvId,
+          enseignantId,
+        );
+
+    if (pvData != null) {
+      _pvController.text = pvData['message']?.toString() ?? '';
+    } else if (_pvController.text != initialPv) {
+      _pvController.text = initialPv;
+    }
+
+    _pvController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _pvController.text.length),
+    );
 
     showModalBottomSheet(
       context: context,
@@ -196,105 +225,216 @@ class _RendezVousPageState extends State<RendezVousPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) {
+      builder: (bottomSheetContext) {
+        final bottomInset = MediaQuery.of(bottomSheetContext).viewInsets.bottom;
+        final screenHeight = MediaQuery.of(bottomSheetContext).size.height;
+        final maxHeight = (screenHeight - bottomInset) * 0.9;
+
         return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Détail du rendez-vous',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: _statusColor(status).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _statusColor(status).withOpacity(0.5)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
                       decoration: BoxDecoration(
-                        color: _statusColor(status),
-                        shape: BoxShape.circle,
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      _statusLabel(status),
-                      style: TextStyle(
-                        color: _statusColor(status).withOpacity(0.8),
-                        fontWeight: FontWeight.w600,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: const Text(
+                          'Détail du rendez-vous',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: _statusColor(status).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _statusColor(status).withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: _statusColor(status),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _statusLabel(status),
+                            style: TextStyle(
+                              color: _statusColor(status).withOpacity(0.8),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            softWrap: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _detailRow(
+                    icon: Icons.person,
+                    title: 'Contact',
+                    value: subject.isEmpty
+                        ? contactName
+                        : '$contactName • $subject',
+                  ),
+                  const SizedBox(height: 14),
+                  _detailRow(
+                    icon: Icons.calendar_today,
+                    title: 'Date',
+                    value: date.isEmpty ? 'Date à confirmer' : date,
+                  ),
+                  const SizedBox(height: 14),
+                  _detailRow(
+                    icon: Icons.access_time,
+                    title: 'Créneau',
+                    value: time,
+                  ),
+                  const SizedBox(height: 14),
+                  _detailRow(icon: Icons.school, title: 'Élève', value: eleveLine),
+                  if (motif.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    _detailRow(
+                      icon: Icons.notes,
+                      title: 'Motif',
+                      value: motif,
+                      valueStyle: const TextStyle(fontStyle: FontStyle.italic),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 24),
+                  if (shouldShowPvSection) ...[
+                    Text(
+                      'PV du rendez-vous',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xff253858),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _pvController,
+                      maxLines: 4,
+                      minLines: 3,
+                      keyboardType: TextInputType.multiline,
+                      textInputAction: TextInputAction.newline,
+                      decoration: InputDecoration(
+                        labelText: 'Ajouter un PV',
+                        hintText: 'Renseignez les remarques ou observations...',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xff1F4B8F), width: 1.5),
+                        ),
+                        prefixIcon: const Icon(Icons.description_outlined, color: Color(0xff1F4B8F)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Builder(builder: (context) {
+                      final bool alreadyExists = pvData != null;
+                      final int existingPvId = alreadyExists
+                          ? (pvData!['id'] ?? pvData!['idPv'] ?? pvData!['id_pv'] ?? 0)
+                          : 0;
+                      final String buttonLabel =
+                          alreadyExists ? 'Mettre à jour le PV' : 'Enregistrer le PV';
+
+                      return SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _pvController.text.trim().isNotEmpty
+                              ? () async {
+                                  rdv['commentaire'] = _pvController.text.trim();
+                                  rdv['pv'] = _pvController.text.trim();
+
+                                  if (alreadyExists && existingPvId != 0) {
+                                    await context.read<EnseignantProvider>().UpdatePv(
+                                          existingPvId,
+                                          _pvController.text.trim(),
+                                        );
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('PV mis à jour avec succès'),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                      Navigator.of(context).pop();
+                                    }
+                                    return;
+                                  }
+
+                                  await context.read<EnseignantProvider>().createPv(
+                                        rdv['id'] ?? rdv['idRdv'],
+                                        _pvController.text.trim(),
+                                        rdv['idEnseignant'] ?? rdv['idenseignant'] ?? 0,
+                                      );
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('PV créé avec succès'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                    Navigator.of(context).pop();
+                                  }
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xff1F4B8F),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.send_rounded),
+                          label: Text(buttonLabel),
+                        ),
+                      );
+                    }),
+                  ],
+                ],
               ),
-              const SizedBox(height: 20),
-              _detailRow(
-                icon: Icons.person,
-                title: 'Contact',
-                value: subject.isEmpty
-                    ? contactName
-                    : '$contactName • $subject',
-              ),
-              const SizedBox(height: 14),
-              _detailRow(
-                icon: Icons.calendar_today,
-                title: 'Date',
-                value: date.isEmpty ? 'Date à confirmer' : date,
-              ),
-              const SizedBox(height: 14),
-              _detailRow(
-                icon: Icons.access_time,
-                title: 'Créneau',
-                value: time,
-              ),
-              const SizedBox(height: 14),
-              _detailRow(icon: Icons.school, title: 'Élève', value: eleveLine),
-              if (motif.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                _detailRow(
-                  icon: Icons.notes,
-                  title: 'Motif',
-                  value: motif,
-                  valueStyle: const TextStyle(fontStyle: FontStyle.italic),
-                ),
-              ],
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
         );
       },
@@ -373,7 +513,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => DisponibiliteConfigurationScreen(),
+                builder: (context) => DisponibiliteConfigurationScreen(isPedagogique: false),
               ),
             );
           },

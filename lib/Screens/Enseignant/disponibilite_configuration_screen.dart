@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:test/providers/EnseignantProvider.dart';
+import 'package:test/providers/Pd_Providers.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:test/providers/auth_provider.dart';
 import 'package:test/providers/disponibilite_provider.dart';
 
 class DisponibiliteConfigurationScreen extends StatefulWidget {
-  const DisponibiliteConfigurationScreen({super.key});
+  const DisponibiliteConfigurationScreen({
+    super.key,
+    required this.isPedagogique,
+  });
+
+  final bool isPedagogique;
 
   @override
   State<DisponibiliteConfigurationScreen> createState() =>
@@ -26,6 +32,9 @@ class _DisponibiliteConfigurationScreenState
   ];
 
   int? _teacherId;
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<Map<String, dynamic>> _pedagogiqueDisponibilites = [];
 
   @override
   void initState() {
@@ -33,36 +42,72 @@ class _DisponibiliteConfigurationScreenState
     _loadTeacherAndDisponibilites();
   }
 
+  Future<void> _loadTeacherAndDisponibilites() async {
+    if (!mounted) return;
 
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-Future<void> _loadTeacherAndDisponibilites() async {
-  final authProvider = context.read<AuthProvider>();
-  final personId = authProvider.idE ?? 0;
+    final authProvider = context.read<AuthProvider>();
+    final personId = authProvider.idE ?? 0;
 
-  if (personId == 0) {
+    if (personId == 0) {
+      if (!mounted) return;
+      setState(() {
+        _teacherId = null;
+        _pedagogiqueDisponibilites = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (widget.isPedagogique) {
+      if (!mounted) return;
+      setState(() {
+        _teacherId = personId;
+      });
+
+      try {
+        final disponibilites = await context.read<PdProvider>().getAllDisponibilites(personId);
+        if (!mounted) return;
+        setState(() {
+          _pedagogiqueDisponibilites = disponibilites;
+          _isLoading = false;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _pedagogiqueDisponibilites = [];
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    final teacherId = await context.read<EnseignantProvider>().getTeacherinfo(personId);
+
+    debugPrint('Resolved teacher ID: $teacherId');
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _teacherId = teacherId == null || teacherId == 0 ? null : teacherId;
+    });
+
+    if (teacherId != null && teacherId != 0) {
+      await context.read<DisponibiliteProvider>().loadDisponibilites(teacherId);
+    }
+
     if (!mounted) return;
     setState(() {
-      _teacherId = null;
+      _isLoading = false;
     });
-    return;
   }
-
-  final teacherId = await context.read<EnseignantProvider>().getTeacherinfo(personId);
-
-  debugPrint('Resolved teacher ID: $teacherId');
-
-  if (!mounted) {
-    return;
-  }
-
-  setState(() {
-    _teacherId = teacherId == null || teacherId == 0 ? null : teacherId;
-  });
-
-  if (teacherId != null && teacherId != 0) {
-    await context.read<DisponibiliteProvider>().loadDisponibilites(teacherId);
-  }
-}
 
   String _formatTime(TimeOfDay timeOfDay) {
     final hour = timeOfDay.hour.toString().padLeft(2, '0');
@@ -139,6 +184,7 @@ String _displayEnd(Map<String, dynamic> disponibilite) {
     }
 
     
+    final isPedagogique = widget.isPedagogique;
     final provider = context.read<DisponibiliteProvider>();
     String selectedDay = _displayDay(disponibilite ?? <String, dynamic>{});
     final matchedDay = _days.firstWhere(
@@ -395,34 +441,66 @@ await showModalBottomSheet<void>(
                                     return;
                                   }
 
-                               final disponibiliteData = {
-                                if (isEditing) 'id': disponibilite['id'],
-                                'idenseignant': _teacherId,
-                                'jour': selectedDay,
-
-                                // IMPORTANT: noms EXACTS API
-                                'heuredebut': _formatTime(startTime),
-                                'heurefin': _formatTime(endTime),
-                              };
-
                                 bool success = false;
-                                if (isEditing) {
-                                  success = await provider.updateDisponibilite(
-                                    _teacherId!,
-                                    disponibilite['id'],
-                                    disponibiliteData,
-                                  );
+
+                                if (isPedagogique) {
+                                  if (isEditing) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'La modification n\'est pas encore supportée pour ce mode.',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  try {
+                                    await context.read<PdProvider>().creationdiponibilite(
+                                      _teacherId!,
+                                      _formatTime(startTime),
+                                      _formatTime(endTime),
+                                      selectedDay,
+                                    );
+                                    success = true;
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(e.toString())),
+                                    );
+                                    return;
+                                  }
                                 } else {
-                                  success = await provider.addDisponibilite(
-                                    _teacherId!,
-                                    disponibiliteData,
-                                  );
+                                  final disponibiliteData = {
+                                    if (isEditing) 'id': disponibilite['id'],
+                                    'idenseignant': _teacherId,
+                                    'jour': selectedDay,
+                                    'heuredebut': _formatTime(startTime),
+                                    'heurefin': _formatTime(endTime),
+                                  };
+
+                                  if (isEditing) {
+                                    success = await provider.updateDisponibilite(
+                                      _teacherId!,
+                                      disponibilite['id'],
+                                      disponibiliteData,
+                                    );
+                                  } else {
+                                    success = await provider.addDisponibilite(
+                                      _teacherId!,
+                                      disponibiliteData,
+                                    );
+                                  }
                                 }
 
                                 if (!context.mounted) return;
 
                                 if (success) {
                                   Navigator.of(sheetContext).pop();
+                                  if (isPedagogique) {
+                                    await _loadTeacherAndDisponibilites();
+                                  }
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -493,6 +571,15 @@ await showModalBottomSheet<void>(
     );
 
     if (confirmed == true) {
+      if (widget.isPedagogique) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La suppression n\'est pas encore supportée pour ce mode.'),
+          ),
+        );
+        return;
+      }
+
       if (_teacherId == null || _teacherId == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('ID Enseignant introuvable.')),
@@ -584,6 +671,12 @@ await showModalBottomSheet<void>(
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DisponibiliteProvider>();
+    final isPedagogique = widget.isPedagogique;
+    final isLoading = isPedagogique ? _isLoading : provider.isLoading;
+    final disponibilites = isPedagogique
+        ? _pedagogiqueDisponibilites
+        : provider.disponibilites;
+    final errorMessage = isPedagogique ? _errorMessage : provider.errorMessage;
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
@@ -599,9 +692,15 @@ await showModalBottomSheet<void>(
           IconButton(
             onPressed: _teacherId == null || _teacherId == 0
                 ? null
-                : () => context
-                      .read<DisponibiliteProvider>()
-                      .loadDisponibilites(_teacherId!),
+                : () {
+                    if (isPedagogique) {
+                      _loadTeacherAndDisponibilites();
+                    } else {
+                      context
+                          .read<DisponibiliteProvider>()
+                          .loadDisponibilites(_teacherId!);
+                    }
+                  },
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -641,9 +740,9 @@ floatingActionButton: FloatingActionButton.extended(
               ),
               const SizedBox(height: 18),
               Expanded(
-                child: provider.isLoading
+                child: isLoading
                     ?const Center(child: CircularProgressIndicator())
-                    : provider.disponibilites.isEmpty
+                    : disponibilites.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -655,7 +754,7 @@ floatingActionButton: FloatingActionButton.extended(
                             ),
                             const SizedBox(height: 14),
                             Text(
-                              provider.errorMessage ??
+                              errorMessage ??
                                   'Aucune disponibilité enregistrée.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -678,10 +777,10 @@ floatingActionButton: FloatingActionButton.extended(
                         ),
                       )
                     : ListView.separated(
-                        itemCount: provider.disponibilites.length,
+                        itemCount: disponibilites.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
-                          final disponibilite = provider.disponibilites[index];
+                          final disponibilite = disponibilites[index];
                           return _buildAvailabilityCard(disponibilite);
                         },
                       ),
