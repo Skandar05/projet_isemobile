@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'package:test/Screens/Pedagogique/Pd_rendezvous_screen.dart';
 import 'package:test/Screens/test.dart';
 import 'package:test/clean.dart';
 import 'package:test/providers/student_provider.dart';
@@ -9,9 +8,10 @@ import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:test/providers/disponibilite_provider.dart';
 import 'package:test/providers/Pd_Providers.dart';
-
+import 'package:test/Screens/Pedagogique/ClassLevelsPage.dart';
 import 'providers/auth_provider.dart';
 import 'Screens/Auth/Auth.dart';
+import '/ttt/TrimestreDashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

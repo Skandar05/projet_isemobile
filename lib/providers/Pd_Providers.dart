@@ -4,8 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class PdProvider extends ChangeNotifier {
-  final String? _baseUrl = dotenv.env['BACKEND_URL']?.trim();
   final http.Client _client = http.Client();
+
+  String? get _baseUrl => dotenv.env['BACKEND_URL']?.trim();
 
   @override
   void dispose() {
@@ -141,6 +142,44 @@ Future<List<Map<String, dynamic>>> getAllDisponibilites(int idPedagogique) async
 
 
 
+}
+
+
+
+
+Future<List<dynamic>> getAllClasses() async {
+  final baseUrl = _baseUrl;
+
+  if (baseUrl == null || baseUrl.isEmpty) {
+    throw Exception('BACKEND_URL is not configured');
+  }
+
+  try {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/getIClasseActifMobile'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is List) {
+        debugPrint('Fetched ${decoded.length} classes with response: ${response.body}');
+        return List<dynamic>.from(decoded);
+      } else {
+        throw Exception('Expected a JSON array');
+      }
+    } else {
+      throw Exception(
+        'Failed to load classes. Status code: ${response.statusCode}',
+      );
+    }
+  } catch (e) {
+    debugPrint('Error fetching classes: $e');
+    return [];
+  }
 }
 
 }

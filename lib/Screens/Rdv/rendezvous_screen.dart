@@ -143,14 +143,34 @@ class _RendezVousPageState extends State<RendezVousPage> {
     return _statusLabel(status) == 'En attente';
   }
 
+  String _extractText(Map<String, dynamic> rdv, List<String> keys) {
+    for (final key in keys) {
+      final value = rdv[key];
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty) {
+          return trimmed;
+        }
+      } else if (value is num) {
+        return value.toString();
+      } else if (value != null) {
+        final trimmed = value.toString().trim();
+        if (trimmed.isNotEmpty) {
+          return trimmed;
+        }
+      }
+    }
+    return '';
+  }
+
   String _contactName(Map<String, dynamic> rdv) {
     final teacherName =
-        ('${rdv['nomEnseignant'] ?? rdv['enseignant'] ?? ''}'
-                ' ${rdv['prenomEnseignant'] ?? ''}')
+        ('${rdv['enseignantNomfr'] ?? rdv['nomEnseignant'] ?? rdv['enseignant'] ?? ''}'
+                ' ${rdv['enseignantPrenomfr'] ?? rdv['prenomEnseignant'] ?? ''}')
             .trim();
     final parentName =
-        ('${rdv['nomParent'] ?? rdv['parent'] ?? ''}'
-                ' ${rdv['prenomParent'] ?? ''}')
+        ('${rdv['parentNomfr'] ?? rdv['nomParent'] ?? rdv['parent'] ?? ''}'
+                ' ${rdv['parentPrenomfr'] ?? rdv['prenomParent'] ?? ''}')
             .trim();
 
     if (_isTeacher) {
@@ -158,6 +178,46 @@ class _RendezVousPageState extends State<RendezVousPage> {
     }
 
     return teacherName.isEmpty ? 'Enseignant' : teacherName;
+  }
+
+  String _senderName(Map<String, dynamic> rdv) {
+    if (_isTeacher) {
+      // For teacher: check if it's "mes rendez-vous" or "rendez-vous reçus"
+      if (_selectedType == 'Mes rendez-vous') {
+        // Teacher created the RDV: sender is teacher
+        return _extractText(rdv, ['nomEnseignant', 'enseignant']) +
+            (' ' + _extractText(rdv, ['prenomEnseignant', 'prenom'])).trim();
+      } else {
+        // Teacher received the RDV: sender is parent
+        return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
+      }
+    } else {
+      // Parent: "mes rendez-vous" = parent created, so parent is sender
+      final first = _extractText(rdv, ['parentPrenomfr', 'parentPrenom', 'prenomParent', 'prenom', 'prenomParent']);
+      final last = _extractText(rdv, ['parentNomfr', 'parentNom', 'nomParent', 'nom', 'nom_parent']);
+      final full = ('$last $first').trim();
+      if (full.isNotEmpty) return full;
+
+      return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'contactName', 'nom_contact', 'nomContact']);
+    }
+  }
+
+  String _receiverName(Map<String, dynamic> rdv) {
+    if (_isTeacher) {
+      // For teacher: check if it's "mes rendez-vous" or "rendez-vous reçus"
+      if (_selectedType == 'Mes rendez-vous') {
+        // Teacher created the RDV: receiver is parent
+        return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
+      } else {
+        // Teacher received the RDV: receiver is teacher
+        return _extractText(rdv, ['nomEnseignant', 'enseignant']) +
+            (' ' + _extractText(rdv, ['prenomEnseignant', 'prenom'])).trim();
+      }
+    } else {
+      // Parent: receiver is teacher
+      return _extractText(rdv, ['enseignantNomfr', 'enseignant']) + " "+
+          (_extractText(rdv, ['enseignantPrenomfr', 'prenom'])).trim();
+    }
   }
 
   void _openNewRdvFlow() {
@@ -182,14 +242,16 @@ class _RendezVousPageState extends State<RendezVousPage> {
   Future<void> _showRdvDetails(BuildContext context, Map<String, dynamic> rdv) async {
     final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
     final contactName = _contactName(rdv);
+    final senderName = _senderName(rdv);
+    final receiverName = _receiverName(rdv);
     final subject = (rdv['nomMatiere'] ?? rdv['matiere'] ?? rdv['sujet'] ?? '')
         .toString();
     final date = (rdv['date'] ?? '').toString().trim();
     final heureDebut = (rdv['heureDebut'] ?? '').toString().trim();
     final heureFin = (rdv['heureFin'] ?? '').toString().trim();
     final motif = (rdv['motif'] ?? '').toString().trim();
-    final eleveName = ('${rdv['prenomEleve'] ?? ''} ${rdv['nomEleve'] ?? ''}')
-        .trim();
+    final eleveName = ('${rdv['elevePrenomfr'] ?? rdv['prenomEleve'] ?? rdv['prenomEleve'] ?? ''} ${rdv['eleveNomfr'] ?? rdv['nomEleve'] ?? rdv['nomEleve'] ?? ''}')
+      .trim();
     final classe = (rdv['classeEleve'] ?? '').toString().trim();
     final eleveLine = eleveName.isEmpty
         ? 'Élève non renseigné'
@@ -235,205 +297,215 @@ class _RendezVousPageState extends State<RendezVousPage> {
           child: Container(
             constraints: BoxConstraints(maxHeight: maxHeight),
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
+            child: StatefulBuilder(
+              builder: (modalContext, modalSetState) {
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: const Text(
-                          'Détail du rendez-vous',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: _statusColor(status).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: _statusColor(status).withOpacity(0.5)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
                           decoration: BoxDecoration(
-                            color: _statusColor(status),
-                            shape: BoxShape.circle,
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _statusLabel(status),
-                            style: TextStyle(
-                              color: _statusColor(status).withOpacity(0.8),
-                              fontWeight: FontWeight.w600,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: const Text(
+                              'Détail du rendez-vous',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
-                            softWrap: true,
                           ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: _statusColor(status).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _statusColor(status).withOpacity(0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: _statusColor(status),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _statusLabel(status),
+                                style: TextStyle(
+                                  color: _statusColor(status).withOpacity(0.8),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                softWrap: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _detailRow(
+                        icon: Icons.send,
+                        title: 'Expéditeur',
+                        value: senderName.isEmpty ? 'Non renseigné' : senderName,
+                      ),
+                      const SizedBox(height: 14),
+                      _detailRow(
+                        icon: Icons.inbox,
+                        title: 'Destinataire',
+                        value: receiverName.isEmpty ? 'Non renseigné' : receiverName,
+                      ),
+                      
+                      const SizedBox(height: 14),
+                      _detailRow(
+                        icon: Icons.calendar_today,
+                        title: 'Date',
+                        value: date.isEmpty ? 'Date à confirmer' : date,
+                      ),
+                      const SizedBox(height: 14),
+                      _detailRow(
+                        icon: Icons.access_time,
+                        title: 'Créneau',
+                        value: time,
+                      ),
+                      const SizedBox(height: 14),
+                      _detailRow(icon: Icons.school, title: 'Élève', value: eleveLine),
+                      if (motif.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _detailRow(
+                          icon: Icons.notes,
+                          title: 'Motif',
+                          value: motif,
+                          valueStyle: const TextStyle(fontStyle: FontStyle.italic),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _detailRow(
-                    icon: Icons.person,
-                    title: 'Contact',
-                    value: subject.isEmpty
-                        ? contactName
-                        : '$contactName • $subject',
-                  ),
-                  const SizedBox(height: 14),
-                  _detailRow(
-                    icon: Icons.calendar_today,
-                    title: 'Date',
-                    value: date.isEmpty ? 'Date à confirmer' : date,
-                  ),
-                  const SizedBox(height: 14),
-                  _detailRow(
-                    icon: Icons.access_time,
-                    title: 'Créneau',
-                    value: time,
-                  ),
-                  const SizedBox(height: 14),
-                  _detailRow(icon: Icons.school, title: 'Élève', value: eleveLine),
-                  if (motif.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    _detailRow(
-                      icon: Icons.notes,
-                      title: 'Motif',
-                      value: motif,
-                      valueStyle: const TextStyle(fontStyle: FontStyle.italic),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  if (shouldShowPvSection) ...[
-                    Text(
-                      'PV du rendez-vous',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xff253858),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _pvController,
-                      maxLines: 4,
-                      minLines: 3,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.newline,
-                      decoration: InputDecoration(
-                        labelText: 'Ajouter un PV',
-                        hintText: 'Renseignez les remarques ou observations...',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: Color(0xff1F4B8F), width: 1.5),
-                        ),
-                        prefixIcon: const Icon(Icons.description_outlined, color: Color(0xff1F4B8F)),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Builder(builder: (context) {
-                      final bool alreadyExists = pvData != null;
-                      final int existingPvId = alreadyExists
-                          ? (pvData!['id'] ?? pvData!['idPv'] ?? pvData!['id_pv'] ?? 0)
-                          : 0;
-                      final String buttonLabel =
-                          alreadyExists ? 'Mettre à jour le PV' : 'Enregistrer le PV';
-
-                      return SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _pvController.text.trim().isNotEmpty
-                              ? () async {
-                                  rdv['commentaire'] = _pvController.text.trim();
-                                  rdv['pv'] = _pvController.text.trim();
-
-                                  if (alreadyExists && existingPvId != 0) {
-                                    await context.read<EnseignantProvider>().UpdatePv(
-                                          existingPvId,
-                                          _pvController.text.trim(),
-                                        );
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('PV mis à jour avec succès'),
-                                          behavior: SnackBarBehavior.floating,
-                                        ),
-                                      );
-                                      Navigator.of(context).pop();
-                                    }
-                                    return;
-                                  }
-
-                                  await context.read<EnseignantProvider>().createPv(
-                                        rdv['id'] ?? rdv['idRdv'],
-                                        _pvController.text.trim(),
-                                        rdv['idEnseignant'] ?? rdv['idenseignant'] ?? 0,
-                                      );
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('PV créé avec succès'),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                    Navigator.of(context).pop();
-                                  }
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xff1F4B8F),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                      const SizedBox(height: 24),
+                      if (shouldShowPvSection) ...[
+                        Text(
+                          'PV du rendez-vous',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xff253858),
                           ),
-                          icon: const Icon(Icons.send_rounded),
-                          label: Text(buttonLabel),
                         ),
-                      );
-                    }),
-                  ],
-                ],
-              ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _pvController,
+                          onChanged: (_) => modalSetState(() {}),
+                          maxLines: 4,
+                          minLines: 3,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          decoration: InputDecoration(
+                            labelText: 'Ajouter un PV',
+                            hintText: 'Renseignez les remarques ou observations...',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xff1F4B8F), width: 1.5),
+                            ),
+                            prefixIcon: const Icon(Icons.description_outlined, color: Color(0xff1F4B8F)),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Builder(builder: (context) {
+                          final bool alreadyExists = pvData != null;
+                          final int existingPvId = alreadyExists
+                              ? (pvData!['id'] ?? pvData!['idPv'] ?? pvData!['id_pv'] ?? 0)
+                              : 0;
+                          final String buttonLabel =
+                              alreadyExists ? 'Mettre à jour le PV' : 'Enregistrer le PV';
+
+                          return SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _pvController.text.trim().isNotEmpty
+                                  ? () async {
+                                      rdv['commentaire'] = _pvController.text.trim();
+                                      rdv['pv'] = _pvController.text.trim();
+
+                                      if (alreadyExists && existingPvId != 0) {
+                                        await context.read<EnseignantProvider>().UpdatePv(
+                                              existingPvId,
+                                              _pvController.text.trim(),
+                                            );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('PV mis à jour avec succès'),
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                          Navigator.of(context).pop();
+                                        }
+                                        return;
+                                      }
+
+                                      await context.read<EnseignantProvider>().createPv(
+                                            rdv['id'] ?? rdv['idRdv'],
+                                            _pvController.text.trim(),
+                                            rdv['idEnseignant'] ?? rdv['idenseignant'] ?? 0,
+                                          );
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('PV créé avec succès'),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                        Navigator.of(context).pop();
+                                      }
+                                    }
+                                  : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xff1F4B8F),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              icon: const Icon(Icons.send_rounded),
+                              label: Text(buttonLabel),
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         );

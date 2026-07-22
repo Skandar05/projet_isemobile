@@ -108,7 +108,7 @@ class EnseignantProvider extends ChangeNotifier {
       'eleves': <Map<String, dynamic>>[],
       'parentsByEleve': <String, List<dynamic>>{},
     };
-
+    debugPrint('Fetching eleves and parents for class ID: $idClasse');
     try {
       final response = await _client.get(
         Uri.parse(

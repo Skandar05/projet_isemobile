@@ -2,6 +2,7 @@
 import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
+import 'package:test/Screens/Pedagogique/ClassLevelsPage.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/providers/Pd_Providers.dart';
 
@@ -264,6 +265,8 @@ Future<void> loadCounts() async {
   String _contactName(Map<String, dynamic> rdv) {
     final directContact = _extractText(rdv, [
       'nom_parent',
+      'parentNomfr',
+      'parentPrenomfr',
       'nomParent',
       'nom_contact',
       'nomContact',
@@ -279,6 +282,7 @@ Future<void> loadCounts() async {
 
     final firstName = _extractText(rdv, [
       'prenomContact',
+      'parentPrenomfr',
       'prenom',
       'prenomDemandeur',
       'firstName',
@@ -289,6 +293,7 @@ Future<void> loadCounts() async {
     ]);
     final lastName = _extractText(rdv, [
       'nomContact',
+      'parentNomfr',
       'nom',
       'nomDemandeur',
       'lastName',
@@ -304,7 +309,7 @@ Future<void> loadCounts() async {
   String _senderName(Map<String, dynamic> rdv) {
     switch (_isselected) {
       case 'parent':
-        return _extractText(rdv, ['nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
+        return _extractText(rdv, ['parentNomfr', 'parentPrenomfr', 'nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
       case 'enseignant':
         return _extractText(rdv, ['nom_enseignant', 'nomEnseignant', 'nomTeacher']);
       case 'Pedagogique':
@@ -338,8 +343,8 @@ Future<void> loadCounts() async {
     final heureDebut = _extractText(rdv, ['heureDebut', 'heure_debut', 'debut', 'startTime']);
     final heureFin = _extractText(rdv, ['heureFin', 'heure_fin', 'fin', 'endTime']);
     final motif = _extractText(rdv, ['motif', 'motifRdv', 'details', 'note']);
-    final eleveFirstName = _extractText(rdv, ['prenom_eleve', 'prenomEleve', 'prenom', 'firstName']);
-    final eleveLastName = _extractText(rdv, ['nom_eleve', 'nomEleve', 'nom', 'lastName']);
+    final eleveFirstName = _extractText(rdv, ['elevePrenomfr', 'prenom_eleve', 'prenomEleve', 'prenom', 'firstName']);
+    final eleveLastName = _extractText(rdv, ['eleveNomfr', 'nom_eleve', 'nomEleve', 'nom', 'lastName']);
     final eleveName = [eleveFirstName, eleveLastName].where((value) => value.isNotEmpty).join(' ').trim();
     final eleveLine = eleveName.isEmpty
         ? _extractText(rdv, ['nom_eleve', 'nomEleve', 'eleve'])
@@ -822,6 +827,12 @@ Future<void> loadCounts() async {
                 child: OutlinedButton(
                   onPressed: () {
                     Navigator.pop(sheetContext);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ClassLevelsPage(),
+                      ),
+                    );
                   },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xff1F4B8F)),

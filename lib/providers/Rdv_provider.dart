@@ -264,7 +264,7 @@ Future<void> createRDV({
   try {
     final response = await http.get(
       Uri.parse(
-        '$_baseUrl/api/rendezvous/personne/$effectiveParentId',
+        '$_baseUrl/getRendezVousParentTous/$effectiveParentId',
       ),
       headers: {'Content-Type': 'application/json'},
     );
@@ -309,7 +309,7 @@ Future<void> createRDV({
   try {
     final response = await http.get(
       Uri.parse(
-        '$_baseUrl/api/rendezvous/personne/$effectiveParentId',
+        '$_baseUrl/getRendezVousParentTous/$effectiveParentId',
       ),
       headers: {'Content-Type': 'application/json'},
     );
