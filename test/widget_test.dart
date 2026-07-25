@@ -4,10 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:test/providers/Pd_Providers.dart';
 import 'package:test/Screens/Pedagogique/ClassLevelsPage.dart';
 
-class FakePdProvider extends PdProvider {
+class widget_test extends PdProvider {
   final List<dynamic> fakeClasses;
 
-  FakePdProvider(this.fakeClasses);
+  widget_test(this.fakeClasses);
 
   @override
   Future<List<dynamic>> getAllClasses() async {
@@ -31,7 +31,7 @@ void main() {
       {'id': 163, 'nomclassefr': '7B4'},
     ];
 
-    final fakeProvider = FakePdProvider(fakeClasses);
+    final fakeProvider = widget_test(fakeClasses);
 
     await tester.pumpWidget(
       ChangeNotifierProvider<PdProvider>.value(

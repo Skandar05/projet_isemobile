@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test/providers/EnseignantProvider.dart';
-import 'package:test/Screens/Widgets/ClasseCard.dart';
+import 'package:test/Screens/Widgets/FinalCard.dart';
 import 'package:test/Screens/Enseignant/TeacherStudentsParentsScreen.dart';
 
 class ClasseEnseignant extends StatefulWidget {
@@ -136,32 +136,82 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
                                   final value = classMap[key]!;
 
                                   return Padding(
-                                    padding: const EdgeInsets.only(bottom: 10),
-                                    child: ClasseCard(
-                                      NomClasse: value,
-                                      onTap: () async {
-                                        final prefs = await SharedPreferences.getInstance();
-                                        await prefs.setString('rdvFlow', 'teacher');
-                                        await prefs.setString('selectedTeacherClassId', key);
-                                        await prefs.setString('selectedTeacherClassName', value);
+  padding: const EdgeInsets.only(bottom: 16),
+  child: FinalCard(
+    onTap: () async {
+      final prefs = await SharedPreferences.getInstance();
 
-                                        if (!context.mounted) {
-                                          return;
-                                        }
+      await prefs.setString('rdvFlow', 'teacher');
+      await prefs.setString('selectedTeacherClassId', key);
+      await prefs.setString('selectedTeacherClassName', value);
 
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => TeacherStudentsParentsScreen(
-                                              classId: int.tryParse(key) ?? 0,
-                                              className: value,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  );
-                                },
+      if (!context.mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TeacherStudentsParentsScreen(
+            classId: int.tryParse(key) ?? 0,
+            className: value,
+          ),
+        ),
+      );
+    },
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.school_rounded,
+          size: 40,
+          color: Color(0xFF3381BD),
+        ),
+
+        const Spacer(),
+
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF253858),
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        Text(
+          "Appuyez pour voir les élèves et leurs parents",
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade700,
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        const Row(
+          children: [
+            Text(
+              "Voir la classe",
+              style: TextStyle(
+                color: Color(0xFF3381BD),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(width: 6),
+            Icon(
+              Icons.arrow_forward_rounded,
+              color: Color(0xFF3381BD),
+              size: 18,
+            ),
+          ],
+        ),
+      ],
+    ),
+  ),
+);
+}
+
                               ),
               ),
             ],
