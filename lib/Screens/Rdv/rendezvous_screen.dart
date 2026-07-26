@@ -234,7 +234,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ClasseEnseignant(),
+        builder: (context) => const DisponibiliteConfigurationScreen(isPedagogique: false),
       ),
     );
   }
@@ -563,38 +563,6 @@ class _RendezVousPageState extends State<RendezVousPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
-     floatingActionButton: _isTeacher
-    ? Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xff1F4B8F), Color(0xff3B82F6)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DisponibiliteConfigurationScreen(isPedagogique: false),
-              ),
-            );
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(Icons.add, size: 28, color: Colors.white),
-        ),
-      )
-    : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -711,24 +679,54 @@ class _RendezVousPageState extends State<RendezVousPage> {
               const SizedBox(height: 15),
 
               if (_isTeacher)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _openDisponibiliteConfiguration,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 55,
+                        child: ElevatedButton.icon(
+                          onPressed: _openNewRdvFlow,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.send, size: 18),
+                          label: const Text(
+                            'Demander un\nrendez-vous',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                        ),
                       ),
                     ),
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: const Text(
-                      'Demander un rendez-vous',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 55,
+                        child: ElevatedButton.icon(
+                          onPressed: _openDisponibiliteConfiguration,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade200,
+                            foregroundColor: primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.calendar_today, size: 18),
+                          label: const Text(
+                            'Mes créneaux',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
 
               if (_isTeacher) const SizedBox(height: 15),

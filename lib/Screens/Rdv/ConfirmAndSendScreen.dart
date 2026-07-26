@@ -25,6 +25,8 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
   int idParent = 0;
   int idEnseignant = 0;
   bool _canSend = false;
+  String parentName = '';
+  String studentName = '';
 
   @override
   void initState() {
@@ -56,11 +58,14 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
           '';
       selectedDateValue = prefs.getString('selectedDateValue') ?? '';
       selectedTimeValue = prefs.getString('selectedTimeValue') ?? '';
-        idParent = prefs.getInt('idPersonne') ?? 0;
-        final dynamic rawIdEns = prefs.get('idEnseignant');
-        if (rawIdEns is int) idEnseignant = rawIdEns; else idEnseignant = int.tryParse(rawIdEns?.toString() ?? '') ?? 0;
+      idParent = prefs.getInt('idPersonne') ?? 0;
+      final dynamic rawIdEns = prefs.get('idEnseignant');
+      if (rawIdEns is int) idEnseignant = rawIdEns; else idEnseignant = int.tryParse(rawIdEns?.toString() ?? '') ?? 0;
       _selectedTimeStart = prefs.getString('selectedTimeStart') ?? '';
       _selectedTimeEnd = prefs.getString('selectedTimeEnd') ?? '';
+      // Load parent and student names from teacher flow
+      parentName = prefs.getString('selectedTeacherParentName') ?? '';
+      studentName = prefs.getString('selectedTeacherStudentName') ?? '';
     });
   }
 
@@ -172,7 +177,7 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                       ),
                       const SizedBox(height: 10),
 
-                      _row("Contact", enseignantFullname),
+                      _row("Contact", parentName.isNotEmpty ? parentName : enseignantFullname),
                       _row("Matière", matiere),
                       _row("Date", selectedDateDisplay),
                       _row("Créneau", selectedTimeValue),
@@ -212,15 +217,15 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                     color: Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
+                      const Icon(Icons.warning_amber_rounded,
                           color: Colors.orange),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          "Notification envoyée à M. Ben Amor Karim et à l'administration",
-                          style: TextStyle(color: Colors.orange),
+                          "Notification envoyée à ${parentName.isNotEmpty ? parentName : 'le responsable'} et à l'administration",
+                          style: const TextStyle(color: Colors.orange),
                         ),
                       )
                     ],
@@ -262,21 +267,9 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                               final studentId = int.tryParse(prefs.getString('selectedTeacherStudentId') ?? '') ?? 0;
                               final classId = int.tryParse(prefs.getString('selectedTeacherClassId') ?? '') ?? 0;
 
-                              final parentIds = parentIdStr.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-
-                              if (parentIds.isEmpty) {
-                                // fallback to current user idPersonne
-                                final fallback = prefs.getInt('idPersonne') ?? 0;
-                                await rdvProvider.createTeacherRDV(
-                                  idTeacher: idTeacher,
-                                  idParent: fallback,
-                                  date: selectedDateValue,
-                                  timeStart: _selectedTimeStart,
-                                  timeEnd: _selectedTimeEnd,
-                                  motif: _reasonController.text,
-                                );
-                              } else if (parentIds.length == 1) {
-                                final pid = int.tryParse(parentIds.first) ?? 0;
+                              // Send only to the first (main) parent
+                              final pid = int.tryParse(parentIdStr) ?? 0;
+                              if (pid > 0) {
                                 await rdvProvider.createTeacherRDV(
                                   idTeacher: idTeacher,
                                   idParent: pid,
@@ -284,16 +277,14 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                                   timeStart: _selectedTimeStart,
                                   timeEnd: _selectedTimeEnd,
                                   motif: _reasonController.text,
-
                                 );
                               } else {
-                                // multiple parents: post one by one, name omitted (or could be split if mapping available)
-                                for (final idStr in parentIds) {
-                                  final pid = int.tryParse(idStr) ?? 0;
-                                  if (pid == 0) continue;
+                                // fallback to current user idPersonne if no parent ID available
+                                final fallback = prefs.getInt('idPersonne') ?? 0;
+                                if (fallback > 0) {
                                   await rdvProvider.createTeacherRDV(
                                     idTeacher: idTeacher,
-                                    idParent: pid,
+                                    idParent: fallback,
                                     date: selectedDateValue,
                                     timeStart: _selectedTimeStart,
                                     timeEnd: _selectedTimeEnd,

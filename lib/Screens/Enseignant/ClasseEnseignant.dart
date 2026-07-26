@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test/Screens/Enseignant/student_search_utils.dart';
+import 'package:test/Screens/Rdv/ChooseCreneauScreen.dart';
 import 'package:test/providers/EnseignantProvider.dart';
-import 'package:test/Screens/Widgets/FinalCard.dart';
-import 'package:test/Screens/Enseignant/TeacherStudentsParentsScreen.dart';
 
 class ClasseEnseignant extends StatefulWidget {
   const ClasseEnseignant({super.key});
@@ -14,8 +14,10 @@ class ClasseEnseignant extends StatefulWidget {
 }
 
 class _ClasseEnseignantState extends State<ClasseEnseignant> {
+  final TextEditingController _searchController = TextEditingController();
+
   int idEnseignant = 0;
-  Map<String, String> classMap = {};
+  final List<Map<String, dynamic>> _students = [];
 
   bool isLoading = true;
   String? errorMessage;
@@ -26,10 +28,16 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
     initData();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> initData() async {
+    final provider = context.read<EnseignantProvider>();
     final prefs = await SharedPreferences.getInstance();
 
-    // Read possible int or String stored variants safely
     int parsePossibleInt(dynamic v) {
       if (v == null) return 0;
       if (v is int) return v;
@@ -37,14 +45,13 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
       return 0;
     }
 
-    idEnseignant = parsePossibleInt(prefs.get('idE'))
-        ;
-    if (idEnseignant == 0) idEnseignant = parsePossibleInt(prefs.get('idEnseignant'));
+    idEnseignant = parsePossibleInt(prefs.get('idE'));
+    if (idEnseignant == 0) {
+      idEnseignant = parsePossibleInt(prefs.get('idEnseignant'));
+    }
 
     if (idEnseignant == 0) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         isLoading = false;
@@ -53,27 +60,95 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
       return;
     }
 
-    if (!mounted) {
-      return;
+    final storedStudents = prefs.getString('teacherStudentsCache');
+    final loadedStudents = <Map<String, dynamic>>[];
+
+    if (storedStudents != null) {
+      final decodedData = jsonDecode(storedStudents);
+      if (decodedData is List) {
+        for (final student in decodedData) {
+          final studentMap = student is Map<String, dynamic>
+              ? student
+              : Map<String, dynamic>.from(student as Map);
+          final studentId = studentMap['id']?.toString() ?? studentMap['studentId']?.toString() ?? '';
+          final firstName = (studentMap['prenomfr'] ?? studentMap['Prenomfr'] ?? '').toString().trim();
+          final lastName = (studentMap['nomfr'] ?? studentMap['Nomfr'] ?? '').toString().trim();
+          final parents = (studentMap['parents'] as List<dynamic>? ?? [])
+              .map<Map<String, dynamic>>((parent) => Map<String, dynamic>.from(parent as Map))
+              .toList();
+
+          loadedStudents.add({
+            'studentId': studentId,
+            'firstName': firstName,
+            'lastName': lastName,
+            'fullName': '$lastName $firstName'.trim(),
+            'classId': studentMap['classId']?.toString() ?? studentMap['classe_id']?.toString() ?? '',
+            'className': studentMap['className']?.toString() ?? studentMap['classe_nomfr']?.toString() ?? studentMap['nomClasse']?.toString() ?? studentMap['nomclasse']?.toString() ?? '',
+            'parents': parents,
+            'parentIds': parents
+                .map((parent) => parent['idpersonne']?.toString() ?? parent['idPersonne']?.toString() ?? parent['id_personne']?.toString() ?? '')
+                .where((id) => id.isNotEmpty)
+                .join(','),
+            'parentNames': parents
+                .map((parent) {
+                  final parentFirstName = (parent['prenomfr'] ?? parent['Prenomfr'] ?? '').toString().trim();
+                  final parentLastName = (parent['nomfr'] ?? parent['Nomfr'] ?? '').toString().trim();
+                  return '$parentLastName $parentFirstName'.trim();
+                })
+                .where((name) => name.isNotEmpty)
+                .join(' & '),
+          });
+        }
+      }
     }
 
-    await Provider.of<EnseignantProvider>(
-      context,
-      listen: false,
-    ).getEnseignantsClasse(idEnseignant);
+    if (loadedStudents.isEmpty) {
+      final allStudents = await provider.GetAllStudents(idEnseignant);
+      for (final student in allStudents) {
+        final studentMap = student is Map<String, dynamic>
+            ? student
+            : Map<String, dynamic>.from(student as Map);
+        final studentId = studentMap['id']?.toString() ?? studentMap['studentId']?.toString() ?? '';
+        final firstName = (studentMap['prenomfr'] ?? studentMap['Prenomfr'] ?? '').toString().trim();
+        final lastName = (studentMap['nomfr'] ?? studentMap['Nomfr'] ?? '').toString().trim();
+        final parents = (studentMap['parents'] as List<dynamic>? ?? [])
+            .map<Map<String, dynamic>>((parent) => Map<String, dynamic>.from(parent as Map))
+            .toList();
 
-    final stored = prefs.getString('classMap');
-
-    if (stored != null) {
-      final decoded = jsonDecode(stored);
-      classMap = Map<String, String>.from(decoded);
+        loadedStudents.add({
+          'studentId': studentId,
+          'firstName': firstName,
+          'lastName': lastName,
+          'fullName': '$lastName $firstName'.trim(),
+          'classId': studentMap['classId']?.toString() ?? studentMap['classe_id']?.toString() ?? '',
+          'className': studentMap['className']?.toString() ?? studentMap['classe_nomfr']?.toString() ?? studentMap['nomClasse']?.toString() ?? studentMap['nomclasse']?.toString() ?? '',
+          'parents': parents,
+          'parentIds': parents
+              .map((parent) => parent['idpersonne']?.toString() ?? parent['idPersonne']?.toString() ?? parent['id_personne']?.toString() ?? '')
+              .where((id) => id.isNotEmpty)
+              .join(','),
+          'parentNames': parents
+              .map((parent) {
+                final parentFirstName = (parent['prenomfr'] ?? parent['Prenomfr'] ?? '').toString().trim();
+                final parentLastName = (parent['nomfr'] ?? parent['Nomfr'] ?? '').toString().trim();
+                return '$parentLastName $parentFirstName'.trim();
+              })
+              .where((name) => name.isNotEmpty)
+              .join(' & '),
+        });
+      }
     }
+
+    if (!mounted) return;
+
+    setState(() {
+      _students.clear();
+      _students.addAll(loadedStudents);
+    });
 
     await prefs.setString('rdvFlow', 'teacher');
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       isLoading = false;
@@ -81,8 +156,46 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
     });
   }
 
+
+  Future<void> _selectStudent(Map<String, dynamic> student) async {
+    final prefs = await SharedPreferences.getInstance();
+    final parentsList = student['parents'] as List<Map<String, dynamic>>? ?? [];
+    
+    // Take only the first parent
+    String parentId = '';
+    String parentName = '';
+    if (parentsList.isNotEmpty) {
+      final firstParent = parentsList[0];
+      parentId = firstParent['idpersonne']?.toString() ?? 
+                 firstParent['idPersonne']?.toString() ?? 
+                 firstParent['id_personne']?.toString() ?? '';
+      final parentFirstName = (firstParent['prenomfr'] ?? '').toString().trim();
+      final parentLastName = (firstParent['nomfr'] ?? '').toString().trim();
+      parentName = '$parentLastName $parentFirstName'.trim();
+    }
+
+    await prefs.setString('rdvFlow', 'teacher');
+    await prefs.setString('selectedTeacherClassId', student['classId']?.toString() ?? '');
+    await prefs.setString('selectedTeacherClassName', student['className']?.toString() ?? '');
+    await prefs.setString('selectedTeacherStudentId', student['studentId']?.toString() ?? '');
+    await prefs.setString('selectedTeacherStudentName', student['fullName']?.toString() ?? '');
+    await prefs.setString('selectedTeacherParentId', parentId);
+    await prefs.setString('selectedTeacherParentName', parentName);
+
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ChooseCreneauScreen(isTeacher: true),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filteredStudents = filterStudentsByQuery(_students, _searchController.text);
+
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
       appBar: AppBar(
@@ -100,19 +213,19 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Choisir une classe',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Sélectionnez la classe de l\'enseignant pour afficher les élèves et leurs parents.',
-                style: TextStyle(
-                  color: Colors.grey.shade700,
-                  height: 1.4,
+              const SizedBox(height: 16),
+              TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'Rechercher un élève',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -127,91 +240,62 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
                               style: TextStyle(color: Colors.red.shade400),
                             ),
                           )
-                        : classMap.isEmpty
-                            ? const Center(child: Text('Aucune classe trouvée'))
-                            : ListView.builder(
-                                itemCount: classMap.length,
+                        : filteredStudents.isEmpty
+                            ? const Center(child: Text('Aucun élève trouvé'))
+                            : ListView.separated(
+                                itemCount: filteredStudents.length,
+                                separatorBuilder: (context, index) => const SizedBox(height: 12),
                                 itemBuilder: (context, index) {
-                                  final key = classMap.keys.elementAt(index);
-                                  final value = classMap[key]!;
+                                  final student = filteredStudents[index];
+                                  final studentName = student['fullName']?.toString().trim().isNotEmpty == true
+                                      ? student['fullName'].toString().trim()
+                                      : 'Élève sans nom';
 
-                                  return Padding(
-  padding: const EdgeInsets.only(bottom: 16),
-  child: FinalCard(
-    onTap: () async {
-      final prefs = await SharedPreferences.getInstance();
-
-      await prefs.setString('rdvFlow', 'teacher');
-      await prefs.setString('selectedTeacherClassId', key);
-      await prefs.setString('selectedTeacherClassName', value);
-
-      if (!context.mounted) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TeacherStudentsParentsScreen(
-            classId: int.tryParse(key) ?? 0,
-            className: value,
-          ),
-        ),
-      );
-    },
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(
-          Icons.school_rounded,
-          size: 40,
-          color: Color(0xFF3381BD),
-        ),
-
-        const Spacer(),
-
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF253858),
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        Text(
-          "Appuyez pour voir les élèves et leurs parents",
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade700,
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        const Row(
-          children: [
-            Text(
-              "Voir la classe",
-              style: TextStyle(
-                color: Color(0xFF3381BD),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(width: 6),
-            Icon(
-              Icons.arrow_forward_rounded,
-              color: Color(0xFF3381BD),
-              size: 18,
-            ),
-          ],
-        ),
-      ],
-    ),
-  ),
-);
-}
-
+                                  return InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () => _selectStudent(student),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: Colors.grey.shade200),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            backgroundColor: const Color(0xffEAF3FF),
+                                            child: Icon(Icons.person, color: Colors.blue.shade700),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  studentName,
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  student['className']?.toString() ?? '',
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade600,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
               ),
             ],

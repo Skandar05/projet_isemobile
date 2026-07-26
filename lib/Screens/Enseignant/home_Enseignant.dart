@@ -1,7 +1,9 @@
 
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:test/Screens/Auth/Auth.dart';
 import 'package:test/providers/EnseignantProvider.dart';
@@ -34,11 +36,24 @@ void initState() {
 
 
 Future<void> _data() async {
-  final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
-  final EnseignantProvider enseignantProvider = Provider.of<EnseignantProvider>(context, listen: false);
-  int ides = int.parse(authProvider.idE.toString());
+  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  final enseignantProvider = Provider.of<EnseignantProvider>(context, listen: false);
+  final ides = int.parse(authProvider.idE.toString());
 
   await enseignantProvider.getTeacherinfo(ides);
+  await _cacheTeacherStudents(ides, enseignantProvider);
+}
+
+Future<void> _cacheTeacherStudents(int idEnseignant, EnseignantProvider provider) async {
+  try {
+    final students = await provider.GetAllStudents(idEnseignant);
+    if (students.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('teacherStudentsCache', jsonEncode(students));
+  } catch (e) {
+    debugPrint('Failed to cache teacher students: $e');
+  }
 }
 
 

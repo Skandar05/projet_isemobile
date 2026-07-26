@@ -21,8 +21,8 @@ class EnseignantProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<Map<dynamic, String>> getEnseignantsClasse(int idE) async {
-    Map<dynamic, String> classes = {};
+  Future<List<dynamic>> getEnseignantsClasse(int idE) async {
+    List<dynamic> classes = [];
     try {
       final response = await _client.get(
         Uri.parse(
@@ -33,18 +33,11 @@ class EnseignantProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        
-
-        for (var item in data) {
-          classes[item['idclasse']] =
-              item['nomclassefr'].toString();
+        if (data is List) {
+          classes = data;
+        } else {
+          debugPrint('Unexpected data format: $data');
         }
-
-        final prefs = await SharedPreferences.getInstance();
-        final encoded = <String, String>{}; classes.forEach((key, value) { encoded[key.toString()] = value; }); await prefs.setString('classMap', jsonEncode(encoded));
-      } else {
-        debugPrint("API error: ${response.statusCode}");
       }
     } catch (e) {
       debugPrint("Exception: $e");
@@ -52,7 +45,7 @@ class EnseignantProvider extends ChangeNotifier {
     return classes;
   }
 
-  Future<void> getEnseignantsMatier(int IdE) async {
+/*   Future<void> getEnseignantsMatier(int IdE) async {
     List<String> matieres = [];
 
     try {
@@ -75,7 +68,7 @@ class EnseignantProvider extends ChangeNotifier {
     } catch (e) {
       print('Error fetching enseignants: $e');
     }
-  }
+  } */
 
   Future<List<dynamic>> GetEleveClass(int IdC) async {
     List<dynamic> eleves = [];
@@ -361,7 +354,57 @@ Future<String> UpdatePv(int idPv, String newContent) async {
   }return updatedMessage;
 }
 
+Future<List<dynamic>> GetAllStudents(int idEnseignant) async {
+  final List<dynamic> students = [];
 
+  try {
+    final classe = await getEnseignantsClasse(idEnseignant);
+    for (final classItem in classe) {
+      final idClasse = int.tryParse(classItem['idclasse']?.toString() ?? '') ?? 0;
+      if (idClasse == 0) {
+        continue;
+      }
+
+      final className = classItem['classe_nomfr']?.toString().trim().isNotEmpty == true
+          ? classItem['classe_nomfr'].toString()
+          : classItem['nomclassefr']?.toString().trim().isNotEmpty == true
+              ? classItem['nomclassefr'].toString()
+              : classItem['nomclasse']?.toString() ?? classItem['nomClasse']?.toString() ?? '';
+
+      final result = await getElevesEtParentsClasse(idClasse);
+      final eleves = (result['eleves'] as List<dynamic>? ?? []).toList();
+      final parentsByEleve = result['parentsByEleve'] as Map<String, dynamic>? ?? {};
+
+      for (final rawStudent in eleves) {
+        final student = rawStudent is Map<String, dynamic>
+            ? Map<String, dynamic>.from(rawStudent)
+            : Map<String, dynamic>.from(rawStudent as Map);
+        final studentId = student['id']?.toString() ?? '';
+        final rawParents = (parentsByEleve[studentId] as List<dynamic>? ?? []);
+        final parents = rawParents
+            .map<Map<String, dynamic>>((parent) => Map<String, dynamic>.from(parent as Map))
+            .toList();
+
+        final rawClassName = (student['classe_nomfr'] ?? student['classe_nomfr'] ?? student['classe_nomfr'])?.toString() ?? '';
+        final resolvedClassName = className.isNotEmpty
+            ? className
+            : rawClassName.isNotEmpty
+                ? rawClassName
+                : student['nomclasse']?.toString() ?? student['nomClasse']?.toString() ?? '';
+
+        student['classId'] = idClasse.toString();
+        student['className'] = resolvedClassName;
+        student['parents'] = parents;
+
+        students.add(student);
+      }
+    }
+  } catch (e) {
+    debugPrint('Error fetching all students: $e');
+  }
+
+  return students;
+}
 
 
 }

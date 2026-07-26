@@ -79,7 +79,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     setState(() {
       id = savedId;
       fullname = prefs.getString("enseignantFullname") ?? '';
-      matiere = prefs.getString("matiere") ?? '';
+      // Try to get matiere from both old and new keys
+      matiere = prefs.getString("matiere") ?? prefs.getString("Nommatierefr") ?? '';
     });
 
     if (id.isNotEmpty) {
