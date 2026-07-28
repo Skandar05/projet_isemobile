@@ -5,7 +5,7 @@ import 'Widgets/DashboardCard.dart';
 import '../Screens/Rdv/rendezvous_screen.dart';
 import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
 import 'package:test/Screens/Pedagogique/Pd_rendezvous_screen.dart';
-import 'package:test/Screens/Pedagogique/home_Pedagogique.dart';
+import 'package:test/Screens/Pedagogique/HomePD.dart';
 
 class DashboardPage extends StatelessWidget {
   final bool isTeacher;
@@ -50,7 +50,7 @@ class DashboardPage extends StatelessWidget {
                           builder: (context) => isTeacher
                               ? const HomeEnseignant()
                               : isPedagogique
-                                  ? const HomeCScreen()
+                                  ? const HomePD()
                                   : const HomeParent(),
                         ),
                       );

@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Pedagogique/ClassLevelsPage.dart';
+import 'package:test/Screens/Pedagogique/HomePD.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
+import 'package:test/Screens/Widgets/custom_app_bar.dart';
+import 'package:test/Screens/parent/home_Parent.dart';
 import 'package:test/providers/Pd_Providers.dart';
 
 String resolveRdvStatusLabel(Object? status) {
@@ -522,193 +525,138 @@ Future<void> loadCounts() async {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final primary = const Color(0xff1F4B8F);
+Widget build(BuildContext context) {
+  final primary = const Color(0xff1F4B8F);
 
-    return Scaffold(
-      backgroundColor: const Color(0xffF5F7FB),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showQuickActionsSheet(context),
-        backgroundColor: const Color(0xff1F4B8F),
-        child: const Icon(Icons.add, size: 28, color: Colors.white),
+  return Scaffold(
+    backgroundColor: const Color(0xffF5F7FB),
+
+    appBar: CustomAppBar(
+      interfacePage: HomePD(),
+      title: "Dashboard pédagogique",
+      subtitle: "Créer un rendez-vous pédagogique",
+      showBackButton: true,
+    ),
+
+    floatingActionButton: FloatingActionButton(
+      onPressed: () => _showQuickActionsSheet(context),
+      backgroundColor: const Color(0xff1F4B8F),
+      child: const Icon(
+        Icons.add,
+        size: 28,
+        color: Colors.white,
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(50),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DashboardPage(isPedagogique: true),
-                        ),
-                      );
-                    },
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 18,
-                        color: primary,
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.notifications_none, color: primary),
-                      ),
-                      const SizedBox(width: 10),
-                      CircleAvatar(
-                        backgroundColor: primary,
-                        child: ClipOval(
-                          child: Image.asset(
-                            'lib/images/logoise.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) {
-                              return const Center(
-                                child: Icon(Icons.image_outlined),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Gategorie des rendez-vous',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xff253858),
-                  ),
-                ),
-              ),
+    ),
 
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: categoryCard(
-                      count: rdvCounts['Pedagogique'] ?? rdvCounts['Pedagogique'] ?? '0',
-                      title: 'Pédagogiques',
-                      icon: Icons.school,
-                      background: const Color(0xffF3F7FF),
-                      iconBackground: const Color(0xffDCEBFF),
-                      color: const Color(0xff377DFF),
-                      isSelected: _isselected == 'Pedagogique',
-                      ontap: () {
-                        setState(() {
-                          _isselected = 'Pedagogique';
-                          _rdvs.clear();
-                          _rdvs.addAll(_rdvsByRole['Pedagogique'] ?? <Map<String, dynamic>>[]);
-                          debugPrint('Selected rdvs for Pedagogique: ${_rdvs.length}');
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: categoryCard(
-                      count: rdvCounts['parent'] ?? '0',
-                      title: 'Parents',
-                      icon: Icons.people,
-                      background: const Color(0xffFAF5FF),
-                      iconBackground: const Color(0xffEAD9FF),
-                      color: const Color(0xff7B4FD6),
-                      isSelected: _isselected == 'parent',
-                      ontap: () {
-                        setState(() {
-                          _isselected = 'parent';
-                          _rdvs.clear();
-                          _rdvs.addAll(_rdvsByRole['parent'] ?? <Map<String, dynamic>>[]);
-                        });
-                        if ((_rdvsByRole['parent'] ?? <Map<String, dynamic>>[]).isEmpty) {
-                          _fetchRdvs('parent');
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: categoryCard(
-                      count: rdvCounts['enseignant'] ?? '0',
-                      title: 'Enseignants',
-                      icon: Icons.co_present,
-                      background: const Color(0xffF2FCF8),
-                      iconBackground: const Color(0xffD7F5E8),
-                      color: const Color(0xff35B88A),
-                      isSelected: _isselected == 'enseignant',
-                      ontap: () {
-                        setState(() {
-                          _isselected = 'enseignant';
-                          _rdvs.clear();
-                          _rdvs.addAll(_rdvsByRole['enseignant'] ?? <Map<String, dynamic>>[]);
-                        });
-                        if ((_rdvsByRole['enseignant'] ?? <Map<String, dynamic>>[]).isEmpty) {
-                          _fetchRdvs('enseignant');
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Statut des rendez-vous',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xff253858),
+    body: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18,vertical: 20),
+        child: Column(
+          children: [
+
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: categoryCard(
+                    count: rdvCounts['Pedagogique'] ?? '0',
+                    title: 'Pédagogiques',
+                    icon: Icons.school,
+                    background: const Color(0xffF3F7FF),
+                    iconBackground: const Color(0xffDCEBFF),
+                    color: const Color(0xff377DFF),
+                    isSelected: _isselected == 'Pedagogique',
+                    ontap: () {
+                      setState(() {
+                        _isselected = 'Pedagogique';
+                        _rdvs.clear();
+                        _rdvs.addAll(
+                          _rdvsByRole['Pedagogique'] ??
+                              <Map<String, dynamic>>[],
+                        );
+                      });
+                    },
                   ),
                 ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: categoryCard(
+                    count: rdvCounts['parent'] ?? '0',
+                    title: 'Parents',
+                    icon: Icons.people,
+                    background: const Color(0xffFAF5FF),
+                    iconBackground: const Color(0xffEAD9FF),
+                    color: const Color(0xff7B4FD6),
+                    isSelected: _isselected == 'parent',
+                    ontap: () {
+                      setState(() {
+                        _isselected = 'parent';
+                        _rdvs.clear();
+                        _rdvs.addAll(
+                          _rdvsByRole['parent'] ??
+                              <Map<String, dynamic>>[],
+                        );
+                      });
+
+                      if ((_rdvsByRole['parent'] ?? []).isEmpty) {
+                        _fetchRdvs('parent');
+                      }
+                    },
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: categoryCard(
+                    count: rdvCounts['enseignant'] ?? '0',
+                    title: 'Enseignants',
+                    icon: Icons.co_present,
+                    background: const Color(0xffF2FCF8),
+                    iconBackground: const Color(0xffD7F5E8),
+                    color: const Color(0xff35B88A),
+                    isSelected: _isselected == 'enseignant',
+                    ontap: () {
+                      setState(() {
+                        _isselected = 'enseignant';
+                        _rdvs.clear();
+                        _rdvs.addAll(
+                          _rdvsByRole['enseignant'] ??
+                              <Map<String, dynamic>>[],
+                        );
+                      });
+
+                      if ((_rdvsByRole['enseignant'] ?? []).isEmpty) {
+                        _fetchRdvs('enseignant');
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+
+            const SizedBox(height: 10),
+
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Statut des rendez-vous',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xff253858),
+                ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: statusCard(
-                      _countByStatus('En attente', role: _isselected).toString(),
-                      'En attente',
-                      Colors.orange.shade800,
-                      Colors.orange,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: statusCard(
-                      _countByStatus('Acceptés', role: _isselected).toString(),
-                      'Acceptés',
-                      Colors.green.shade800,
-                      Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: statusCard(
-                      _countByStatus('Rejetés', role: _isselected).toString(),
-                      'Rejetés',
-                      Colors.red.shade800,
-                      Colors.red,
-                    ),
-                  ),
-                ],
-              ),
+            ),
+
+            const SizedBox(height: 10),
+
+
+           
               const SizedBox(height: 15),
               Container(
                 padding: const EdgeInsets.all(4),
@@ -753,49 +701,75 @@ Future<void> loadCounts() async {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 15),
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _visibleRdvsForCurrentSelection().isEmpty
-                        ? const Center(child: Text('Aucun rendez-vous pour le moment'))
-                        : ListView.builder(
-                            itemCount: _visibleRdvsForCurrentSelection().length,
-                            itemBuilder: (context, index) {
-                              final rdv = _visibleRdvsForCurrentSelection()[index];
-                              final date = (rdv['date'] ?? '').toString().trim();
-                              final heureDebut = (rdv['heureDebut'] ?? '').toString().trim();
-                              final heureFin = (rdv['heureFin'] ?? '').toString().trim();
-                              final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-                              final contactName = _contactName(rdv);
-                              final subject = _extractText(rdv, ['nomMatiere', 'matiere', 'sujet', 'motif', 'objet', 'titre']);
-                              final duration = _formatDuration(heureDebut, heureFin);
-                              final time = heureDebut.isEmpty && heureFin.isEmpty
-                                  ? 'Heure à confirmer'
-                                  : '$heureDebut - $heureFin';
-                              final pv = _extractText(rdv, ['pv', 'pvRdv', 'pvRendezvous']);
+              
 
-                              return AppointmentCard(
-                                tutorName: contactName,
-                                subject: subject.isEmpty ? 'Rendez-vous' : subject,
-                                duration: duration,
-                                date: date.isEmpty ? 'Date à confirmer' : date,
-                                time: time,
-                                scolor: _statusColor(status),
-                                state: _statusLabel(status),
-                                onTap: () => _showRdvDetails(context, rdv),
-                                pv: pv,
-                              );
-                            },
+
+            const SizedBox(height: 15),
+
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : _visibleRdvsForCurrentSelection().isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Aucun rendez-vous pour le moment',
                           ),
-              ),
-            ],
-          ),
+                        )
+                      : ListView.builder(
+                          itemCount:
+                              _visibleRdvsForCurrentSelection().length,
+
+                          itemBuilder: (context, index) {
+
+                            final rdv =
+                                _visibleRdvsForCurrentSelection()[index];
+
+                            return AppointmentCard(
+                              tutorName: _contactName(rdv),
+                              subject: _extractText(
+                                rdv,
+                                [
+                                  'nomMatiere',
+                                  'matiere',
+                                  'sujet',
+                                  'motif',
+                                  'objet',
+                                  'titre'
+                                ],
+                              ),
+                              duration: _formatDuration(
+                                rdv['heureDebut'],
+                                rdv['heureFin'],
+                              ),
+                              date: rdv['date'] ?? 'Date à confirmer',
+                              time:
+                                  '${rdv['heureDebut']} - ${rdv['heureFin']}',
+                              scolor:
+                                  _statusColor(rdv['statuts']),
+                              state:
+                                  _statusLabel(rdv['statuts']),
+                              onTap: () =>
+                                  _showRdvDetails(context, rdv),
+                              pv: _extractText(
+                                rdv,
+                                [
+                                  'pv',
+                                  'pvRdv',
+                                  'pvRendezvous'
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-
+    ),
+  );
+}
   Future<void> _showQuickActionsSheet(BuildContext context) async {
     await showModalBottomSheet(
       context: context,
@@ -879,54 +853,6 @@ Future<void> loadCounts() async {
       },
     );
   }
-
-  Widget statusCard(String count, String title, Color bg, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: bg.withValues(alpha: 0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 4,
-            width: 40,
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            count,
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.grey.shade800,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 Widget categoryCard({
@@ -945,7 +871,7 @@ Widget categoryCard({
     child: Transform.scale(
       scale: isSelected ? 1.03 : 1.0,
       child: Container(
-        height: isSelected ? 170 : 160,
+        height: isSelected ? 120 : 110,
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(22),
@@ -965,42 +891,47 @@ Widget categoryCard({
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-          Container(
-            width: isSelected ? 58 : 55,
-            height: isSelected ? 58 : 55,
-            decoration: BoxDecoration(
-              color: iconBackground,
-              shape: BoxShape.circle,
+            Container(
+              width: isSelected ? 48 : 32,
+              height: isSelected ? 48 : 32,
+              decoration: BoxDecoration(
+                color: iconBackground,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: isSelected ? 24 : 17,
+                color: color,
+              ),
             ),
-            child: Icon(
-              icon,
-              size: isSelected ? 30 : 28,
-              color: color,
+
+            SizedBox(height: isSelected ? 8 : 2),
+
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: isSelected ? 24 : 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-          ),
-          const SizedBox(height: 15),
-          Text(
-            count,
-            style: TextStyle(
-              fontSize: isSelected ? 30 : 28,
-              fontWeight: FontWeight.bold,
-              color: color,
+
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: isSelected ? 12 : 10,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xff222222),
+              ),
             ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: isSelected ? 14 : 13,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xff222222),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     ),
-  ),
   );
 }

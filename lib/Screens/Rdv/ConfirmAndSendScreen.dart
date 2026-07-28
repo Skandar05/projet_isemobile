@@ -27,6 +27,7 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
   bool _canSend = false;
   String parentName = '';
   String studentName = '';
+  bool _isSubmitting = false;
 
   @override
   void initState() {

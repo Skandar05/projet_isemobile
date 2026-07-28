@@ -3,8 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
 import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
+import 'package:test/Screens/Enseignant/home_Enseignant.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/Screens/Rdv/creationRDV.dart';
+import 'package:test/Screens/Widgets/custom_app_bar.dart';
+import 'package:test/Screens/parent/RdvType.dart';
+import 'package:test/Screens/parent/home_Parent.dart';
 import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,28 +25,9 @@ class RendezVousPage extends StatefulWidget {
 class _RendezVousPageState extends State<RendezVousPage> {
   List<Map<String, dynamic>> _rdvs = [];
   bool _isLoading = false;
-  String _selectedFilter = 'Tous';
   final TextEditingController _pvController = TextEditingController();
-  static const List<String> _statusFilters = [
-    'Tous',
-    'En attente',
-    'Acceptés',
-    'Rejetés',
-  ];
-
-  String _selectedType = 'Mes rendez-vous';
-  static const List<String> _typeFilters = [
-    'Mes rendez-vous',
-    'Rendez-vous reçus',
-  ];
 
   bool get _isTeacher => widget.isTeacher;
-
-  bool _matchesFilter(Map<String, dynamic> rdv) {
-    if (_selectedFilter == 'Tous') return true;
-    final status = (rdv['statuts'] ?? rdv['status'] ?? '').toString();
-    return _statusLabel(status) == _selectedFilter;
-  }
 
   @override
   void initState() {
@@ -68,14 +53,14 @@ class _RendezVousPageState extends State<RendezVousPage> {
     final int idTeacher = prefs.getInt('IdteacherInfo') ??0;
     debugPrint('Current user ID: $currentUserId, Teacher ID: $idTeacher');
 
-    final bool showReceived = _selectedType == 'Rendez-vous reçus';
+
     final List<Map<String, dynamic>> rdvs = _isTeacher
-        ? (showReceived
-            ? await rdvProvider.getTeacherRDV2(idTeacher)
-            : await rdvProvider.getTeacherRDV(idTeacher))
-        : (showReceived
-            ? await rdvProvider.getParentRDV2(currentUserId)
-            : await rdvProvider.getParentRDV(currentUserId));
+        ? (
+             await rdvProvider.getTeacherRDV(idTeacher))
+        : ( 
+             await rdvProvider.getParentRDV(currentUserId)
+            
+            );
 
     if (mounted) {
       setState(() {
@@ -181,42 +166,58 @@ class _RendezVousPageState extends State<RendezVousPage> {
   }
 
   String _senderName(Map<String, dynamic> rdv) {
-    if (_isTeacher) {
-      // For teacher: check if it's "mes rendez-vous" or "rendez-vous reçus"
-      if (_selectedType == 'Mes rendez-vous') {
-        // Teacher created the RDV: sender is teacher
-        return _extractText(rdv, ['nomEnseignant', 'enseignant']) +
-            (' ' + _extractText(rdv, ['prenomEnseignant', 'prenom'])).trim();
-      } else {
-        // Teacher received the RDV: sender is parent
-        return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
-      }
-    } else {
-      // Parent: "mes rendez-vous" = parent created, so parent is sender
-      final first = _extractText(rdv, ['parentPrenomfr', 'parentPrenom', 'prenomParent', 'prenom', 'prenomParent']);
+    final demandeurRole = (rdv['demandeur_role'] ?? '').toString().toLowerCase();
+    
+    if (demandeurRole.contains('parent')) {
+      // Parent initiated: sender is parent
+      final first = _extractText(rdv, ['parentPrenomfr', 'parentPrenom', 'prenomParent', 'prenom']);
       final last = _extractText(rdv, ['parentNomfr', 'parentNom', 'nomParent', 'nom', 'nom_parent']);
       final full = ('$last $first').trim();
       if (full.isNotEmpty) return full;
-
       return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'contactName', 'nom_contact', 'nomContact']);
+    } else {
+      // Teacher initiated: sender is teacher
+      final first = _extractText(rdv, ['enseignantPrenomfr', 'prenomEnseignant', 'prenom']);
+      final last = _extractText(rdv, ['enseignantNomfr', 'nomEnseignant', 'nom', 'enseignant']);
+      final full = ('$last $first').trim();
+      if (full.isNotEmpty) return full;
+      return _extractText(rdv, ['nomEnseignant', 'enseignant']);
     }
   }
 
   String _receiverName(Map<String, dynamic> rdv) {
-    if (_isTeacher) {
-      // For teacher: check if it's "mes rendez-vous" or "rendez-vous reçus"
-      if (_selectedType == 'Mes rendez-vous') {
-        // Teacher created the RDV: receiver is parent
-        return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
-      } else {
-        // Teacher received the RDV: receiver is teacher
-        return _extractText(rdv, ['nomEnseignant', 'enseignant']) +
-            (' ' + _extractText(rdv, ['prenomEnseignant', 'prenom'])).trim();
-      }
+    final demandeurRole = (rdv['demandeur_role'] ?? '').toString().toLowerCase();
+    
+    if (demandeurRole.contains('parent')) {
+      // Parent initiated: receiver is teacher
+      final first = _extractText(rdv, ['enseignantPrenomfr', 'prenomEnseignant', 'prenom']);
+      final last = _extractText(rdv, ['enseignantNomfr', 'nomEnseignant', 'nom', 'enseignant']);
+      final full = ('$last $first').trim();
+      if (full.isNotEmpty) return full;
+      return _extractText(rdv, ['nomEnseignant', 'enseignant']);
     } else {
-      // Parent: receiver is teacher
-      return _extractText(rdv, ['enseignantNomfr', 'enseignant']) + " "+
-          (_extractText(rdv, ['enseignantPrenomfr', 'prenom'])).trim();
+      // Teacher initiated: receiver is parent
+      final first = _extractText(rdv, ['parentPrenomfr', 'parentPrenom', 'prenomParent', 'prenom']);
+      final last = _extractText(rdv, ['parentNomfr', 'parentNom', 'nomParent', 'nom', 'nom_parent']);
+      final full = ('$last $first').trim();
+      if (full.isNotEmpty) return full;
+      return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'contactName', 'nom_contact', 'nomContact']);
+    }
+  }
+
+  bool _canPerformAction(Map<String, dynamic> rdv) {
+    final demandeurRole = (rdv['demandeur_role'] ?? '').toString().toLowerCase();
+    final status = _statusLabel((rdv['statuts'] ?? rdv['status'] ?? '').toString());
+    
+    // Only non-initiator can accept/reject pending requests
+    if (status != 'En attente') return false;
+    
+    if (_isTeacher) {
+      // Teacher can act on parent-initiated requests
+      return demandeurRole.contains('parent');
+    } else {
+      // Parent can act on teacher-initiated requests
+      return demandeurRole.contains('teacher');
     }
   }
 
@@ -225,7 +226,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            _isTeacher ? const ClasseEnseignant() : const ChooseContactScreen(),
+            _isTeacher ? const ClasseEnseignant() : const RdvType(),
       ),
     );
   }
@@ -555,473 +556,333 @@ class _RendezVousPageState extends State<RendezVousPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    Color primary = const Color(0xff1F4B8F);
-    final actionLabel = _isTeacher
-        ? 'Créer un rendez-vous'
-        : 'Demander un rendez-vous';
+Widget build(BuildContext context) {
+  final primary = const Color(0xff1F4B8F);
 
-    return Scaffold(
-      backgroundColor: const Color(0xffF5F7FB),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
+  final actionLabel = _isTeacher
+      ? 'Créer un rendez-vous'
+      : 'Demander un rendez-vous';
 
-              /// HEADER
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        borderRadius: BorderRadius.circular(50),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  DashboardPage(isTeacher: _isTeacher),
-                            ),
-                          );
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.arrow_back_ios_new,
-                            size: 18,
-                            color: primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.notifications_none, color: primary),
-                      ),
-                      const SizedBox(width: 10),
-                      CircleAvatar(
-                        backgroundColor: primary,
-                        child: ClipOval(
-                          child: Image.asset(
-                            'lib/images/logoise.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) {
-                              return const Center(
-                                child: Icon(Icons.image_outlined),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+  return Scaffold(
+    backgroundColor: const Color(0xffF5F7FB),
 
-              const SizedBox(height: 10),
+    // ================= APP BAR =================
+    appBar: CustomAppBar(
+      interfacePage: _isTeacher
+          ? const HomeEnseignant()
+          : const HomeParent(),
 
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Mes Rendez-vous",
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xff253858),
-                  ),
-                ),
-              ),
+      title: _isTeacher
+          ? "Espace Enseignant"
+          : "Espace Parent",
 
-              const SizedBox(height: 20),
+      subtitle: _isTeacher
+          ? "Gérer vos rendez-vous"
+          : "Créer un rendez-vous pédagogique",
 
-              if (!_isTeacher)
-                Container(
-                  height: 55,
-                  decoration: BoxDecoration(
-                    color: primary,
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(color: primary.withOpacity(.3), blurRadius: 10),
-                    ],
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(50),
-                    onTap: _openNewRdvFlow,
-                    child: Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.white24,
-                            child: Icon(Icons.add, color: Colors.white),
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            actionLabel,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+      showBackButton: true,
+    ),
 
-              const SizedBox(height: 15),
 
-              if (_isTeacher)
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 55,
-                        child: ElevatedButton.icon(
-                          onPressed: _openNewRdvFlow,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          icon: const Icon(Icons.send, size: 18),
-                          label: const Text(
-                            'Demander un\nrendez-vous',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SizedBox(
-                        height: 55,
-                        child: ElevatedButton.icon(
-                          onPressed: _openDisponibiliteConfiguration,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey.shade200,
-                            foregroundColor: primary,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          icon: const Icon(Icons.calendar_today, size: 18),
-                          label: const Text(
-                            'Mes créneaux',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                          ),
-                        ),
-                      ),
+    // ================= BODY =================
+    body: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: Column(
+          children: [
+
+            const SizedBox(height: 15),
+
+
+            // ============ PARENT BUTTON ============
+            if (!_isTeacher)
+              Container(
+                height: 55,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: primary,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primary.withOpacity(.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
 
-              if (_isTeacher) const SizedBox(height: 15),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(15),
+                  onTap: _openNewRdvFlow,
 
-              /// STATS
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+
+                      const CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.white24,
+                        child: Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      Text(
+                        actionLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                    ],
+                  ),
+                ),
+              ),
+
+
+
+            // ============ TEACHER BUTTONS ============
+            if (_isTeacher) ...[
+
+              const SizedBox(height: 5),
+
               Row(
                 children: [
+
                   Expanded(
-                    child: statusCard(
-                      _rdvs
-                          .where((rdv) {
-                            final status =
-                                (rdv['statuts'] ?? rdv['status'] ?? '')
-                                    .toString();
-                            return _statusLabel(status) == 'En attente';
-                          })
-                          .length
-                          .toString(),
-                      "En attente",
-                      Colors.orange.shade200,
-                      Colors.orange.shade800,
+                    child: SizedBox(
+                      height: 55,
+
+                      child: ElevatedButton.icon(
+                        onPressed: _openNewRdvFlow,
+
+                        icon: const Icon(
+                          Icons.send,
+                          size: 18,
+                        ),
+
+                        label: const Text(
+                          "Demander un\nrendez-vous",
+                          textAlign: TextAlign.center,
+                        ),
+
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          foregroundColor: Colors.white,
+
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+
+
+                  const SizedBox(width: 12),
+
+
                   Expanded(
-                    child: statusCard(
-                      _rdvs
-                          .where((rdv) {
-                            final status =
-                                (rdv['statuts'] ?? rdv['status'] ?? '')
-                                    .toString();
-                            return _statusLabel(status) == 'Acceptés';
-                          })
-                          .length
-                          .toString(),
-                      "Acceptés",
-                      Colors.green.shade200,
-                      Colors.green.shade800,
+                    child: SizedBox(
+                      height: 55,
+
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            _openDisponibiliteConfiguration,
+
+                        icon: const Icon(
+                          Icons.calendar_today,
+                          size: 18,
+                        ),
+
+                        label: const Text(
+                          "Mes créneaux",
+                          textAlign: TextAlign.center,
+                        ),
+
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Colors.grey.shade200,
+
+                          foregroundColor: primary,
+
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: statusCard(
-                      _rdvs
-                          .where((rdv) {
-                            final status =
-                                (rdv['statuts'] ?? rdv['status'] ?? '')
-                                    .toString();
-                            return _statusLabel(status) == 'Rejetés';
-                          })
-                          .length
-                          .toString(),
-                      "Rejetés",
-                      Colors.red.shade200,
-                      Colors.red.shade800,
-                    ),
-                  ),
+
                 ],
               ),
-
-              const SizedBox(height: 15),
-
-              /// TYPE SEGMENTED CONTROL
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: _typeFilters.map((type) {
-                    final bool selected = _selectedType == type;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          if (_selectedType == type) return;
-                          setState(() {
-                            _selectedType = type;
-                          });
-                          _fetchRdv();
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 4,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: selected ? primary : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: selected ? primary : Colors.transparent,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              type,
-                              style: TextStyle(
-                                color: selected ? Colors.white : primary,
-                                fontWeight: selected
-                                    ? FontWeight.w700
-                                    : FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-
-              const SizedBox(height: 15),
-
-              /// FILTERS
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: _statusFilters.map((filter) {
-                    final bool selected = _selectedFilter == filter;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedFilter = filter;
-                          });
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 4,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: selected ? primary : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: selected ? primary : Colors.transparent,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              filter,
-                              style: TextStyle(
-                                color: selected ? Colors.white : primary,
-                                fontWeight: selected
-                                    ? FontWeight.w700
-                                    : FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-
-              const SizedBox(height: 15),
-
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _rdvs.where(_matchesFilter).isEmpty
-                    ? const Center(
-                        child: Text("Aucun rendez-vous pour le moment"),
-                      )
-                    : ListView.builder(
-                        itemCount: _rdvs.where(_matchesFilter).length,
-                        itemBuilder: (context, index) {
-                          final filteredRdvs = _rdvs
-                              .where(_matchesFilter)
-                              .toList();
-                          final rdv = filteredRdvs[index];
-                          final date = (rdv['date'] ?? '').toString().trim();
-                          final heureDebut = (rdv['heureDebut'] ?? '')
-                              .toString()
-                              .trim();
-                          final heureFin = (rdv['heureFin'] ?? '')
-                              .toString()
-                              .trim();
-                          final status = (rdv['statuts'] ?? rdv['status'] ?? '')
-                              .toString();
-                          final contactName = _contactName(rdv);
-                          final subject =
-                              (rdv['nomMatiere'] ??
-                                      rdv['matiere'] ??
-                                      rdv['sujet'] ??
-                                      rdv['motif'] ??
-                                      'Rendez-vous')
-                                  .toString();
-                          final duration = _formatDuration(
-                            heureDebut,
-                            heureFin,
-                          );
-                          final time = heureDebut.isEmpty && heureFin.isEmpty
-                              ? 'Heure à confirmer'
-                              : '$heureDebut - $heureFin';
-                          final bool showActions =
-                              _selectedType == 'Rendez-vous reçus' &&
-                              _isPendingStatus(status);
-                          final rdvProvider = Provider.of<RdvProvider>(
-                            context,
-                            listen: false,
-                          );
-
-                          return AppointmentCard(
-                            tutorName: contactName,
-                            subject: subject,
-                            duration: duration,
-                            date: date.isEmpty ? 'Date à confirmer' : date,
-                            time: time,
-                            scolor: _statusColor(status),
-                            state: _statusLabel(status),
-                            onTap: () => _showRdvDetails(context, rdv),
-                            onAccept: showActions
-                                ? () async {
-                                    final rdvId = rdv['id'] ?? rdv['idRdv'];
-                                    await rdvProvider.acceptTeacherRDV(rdvId);
-                                    await _fetchRdv();
-                                  }
-                                : null,
-                            onReject: showActions
-                                ? () async {
-                                    final rdvId = rdv['id'] ?? rdv['idRdv'];
-                                    await rdvProvider.rejectTeacherRDV(rdvId);
-                                    await _fetchRdv();
-                                  }
-                                : null,
-                          );
-                        },
-                      ),
-              ),
             ],
-          ),
+
+
+            const SizedBox(height: 15),
+
+
+
+            // ============ LIST ============
+            Expanded(
+              child: _isLoading
+
+                  ? const Center(
+                      child:
+                          CircularProgressIndicator(),
+                    )
+
+
+                  : _rdvs.isEmpty
+
+                      ? const Center(
+                          child: Text(
+                            "Aucun rendez-vous pour le moment",
+                          ),
+                        )
+
+
+                      : ListView.builder(
+
+                          physics:
+                              const BouncingScrollPhysics(),
+
+                          itemCount:
+                              _rdvs.length,
+
+
+                          itemBuilder:
+                              (context, index) {
+
+
+                            final rdv =
+                                _rdvs[index];
+
+
+                            final status =
+                                (rdv['statuts'] ??
+                                        rdv['status'] ??
+                                        '')
+                                    .toString();
+
+
+
+                            final heureDebut =
+                                (rdv['heureDebut'] ??
+                                        '')
+                                    .toString();
+
+
+
+                            final heureFin =
+                                (rdv['heureFin'] ??
+                                        '')
+                                    .toString();
+
+
+
+                            return AppointmentCard(
+
+                              tutorName:
+                                  _contactName(rdv),
+
+
+                              subject:
+                                  (rdv['nomMatiere'] ??
+                                          rdv['matiere'] ??
+                                          rdv['sujet'] ??
+                                          "Rendez-vous")
+                                      .toString(),
+
+
+                              duration:
+                                  _formatDuration(
+                                heureDebut,
+                                heureFin,
+                              ),
+
+
+                              date:
+                                  (rdv['date'] ??
+                                          "Date à confirmer")
+                                      .toString(),
+
+
+                              time:
+                                  heureDebut.isEmpty &&
+                                          heureFin.isEmpty
+                                      ? "Heure à confirmer"
+                                      : "$heureDebut - $heureFin",
+
+
+                              scolor:
+                                  _statusColor(status),
+
+
+                              state:
+                                  _statusLabel(status),
+
+
+                              onTap: () =>
+                                  _showRdvDetails(
+                                context,
+                                rdv,
+                              ),
+
+
+                              onAccept:
+                                  _canPerformAction(rdv)
+                                      ? () async {
+
+                                          final id =
+                                              rdv['id'] ??
+                                                  rdv['idRdv'];
+
+                                          await context
+                                              .read<RdvProvider>()
+                                              .acceptTeacherRDV(
+                                                  id);
+
+                                          await _fetchRdv();
+                                        }
+                                      : null,
+
+
+                              onReject:
+                                  _canPerformAction(rdv)
+                                      ? () async {
+
+                                          final id =
+                                              rdv['id'] ??
+                                                  rdv['idRdv'];
+
+                                          await context
+                                              .read<RdvProvider>()
+                                              .rejectTeacherRDV(
+                                                  id);
+
+                                          await _fetchRdv();
+                                        }
+                                      : null,
+
+                            );
+                          },
+                        ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget statusCard(String count, String title, Color bg, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: bg.withOpacity(0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 4,
-            width: 40,
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            count,
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.grey.shade800,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    ),
+  );
+}
+  
 
   Widget appointmentCard({
     required String name,

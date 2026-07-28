@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../screens/Parent/home_Parent.dart';
 import '../Screens/Enseignant/home_Enseignant.dart';
-import '../Screens/Pedagogique/home_Pedagogique.dart';
+import '../Screens/Pedagogique/HomePD.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
@@ -192,9 +192,9 @@ class AuthProvider extends ChangeNotifier {
     } else if (normalizedRole.contains('ADMIN') ||
         normalizedRole.contains('PD') ||
         normalizedRole.contains('PEDAGOGIQUE')) {
-      page = const HomeCScreen();
+      page = const HomePD();
     } else {
-      page = const HomeCScreen();
+      page = const HomePD();
     }
 
     await Navigator.of(context).pushReplacement(

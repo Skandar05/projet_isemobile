@@ -1,0 +1,137 @@
+﻿Analyzing test...
+
+warning - lib\Screens\DashboardPage.dart:6:8 - Unused import: 'package:test/Screens/Enseignant/ClasseEnseignant.dart'. Try removing the import directive. - unused_import
+warning - lib\Screens\Enseignant\disponibilite_configuration_screen.dart:5:8 - Unused import: 'package:test/providers/Rdv_provider.dart'. Try removing the import directive. - unused_import
+warning - lib\Screens\Enseignant\disponibilite_configuration_screen.dart:424:78 - The receiver can't be null, so the null-aware operator '?[' is unnecessary. Try replacing the operator '?[' with '['. - invalid_null_aware_operator
+warning - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:220:8 - The declaration '_matchesFilter' isn't referenced. Try removing the declaration of '_matchesFilter'. - unused_element
+warning - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:241:7 - The declaration '_roleCount' isn't referenced. Try removing the declaration of '_roleCount'. - unused_element
+warning - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:338:11 - The value of the local variable 'contactName' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:349:11 - The value of the local variable 'eleveLine' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\Screens\Pedagogique\home_Pedagogique.dart:5:8 - Unused import: 'package:test/Screens/Pedagogique/Pd_rendezvous_screen.dart'. Try removing the import directive. - unused_import
+warning - lib\Screens\Rdv\ChooseCreneauScreen.dart:6:8 - Unused import: 'creationRDV.dart'. Try removing the import directive. - unused_import
+warning - lib\Screens\Rdv\ChooseCreneauScreen.dart:34:14 - The value of the field '_showDebug' isn't used. Try removing the field, or using it. - unused_field
+warning - lib\Screens\Rdv\ChooseCreneauScreen.dart:162:42 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - lib\Screens\Rdv\ChooseCreneauScreen.dart:162:45 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - lib\Screens\Rdv\ChooseCreneauScreen.dart:733:33 - The value of the local variable 'flow' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\Screens\Rdv\ConfirmAndSendScreen.dart:5:8 - Unused import: 'ChooseCreneauScreen.dart'. Try removing the import directive. - unused_import
+warning - lib\Screens\Rdv\ConfirmAndSendScreen.dart:266:37 - The value of the local variable 'parentNameStr' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\Screens\Rdv\ConfirmAndSendScreen.dart:267:37 - The value of the local variable 'studentId' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\Screens\Rdv\ConfirmAndSendScreen.dart:268:37 - The value of the local variable 'classId' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\Screens\Rdv\creationRDV.dart:3:8 - Unused import: 'package:test/Screens/Rdv/rendezvous_screen.dart'. Try removing the import directive. - unused_import
+warning - lib\Screens\Rdv\rendezvous_screen.dart:244:11 - The value of the local variable 'contactName' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\Screens\Rdv\rendezvous_screen.dart:247:11 - The value of the local variable 'subject' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\Screens\Rdv\rendezvous_screen.dart:445:40 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - lib\Screens\Rdv\rendezvous_screen.dart:445:57 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - lib\Screens\Rdv\rendezvous_screen.dart:445:76 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - lib\main.dart:5:8 - Unused import: 'package:test/Screens/Widgets/FinalCard.dart'. Try removing the import directive. - unused_import
+warning - lib\main.dart:7:8 - Unused import: 'package:test/Screens/TestInterfacePage.dart'. Try removing the import directive. - unused_import
+warning - lib\main.dart:13:8 - Unused import: 'package:test/Screens/Pedagogique/ClassLevelsPage.dart'. Try removing the import directive. - unused_import
+warning - lib\main.dart:14:8 - Unused import: 'package:test/ttt/disponibilite_test.dart'. Try removing the import directive. - unused_import
+warning - lib\main.dart:17:8 - Unused import: '/ttt/TrimestreDashboard.dart'. Try removing the import directive. - unused_import
+warning - lib\providers\EnseignantProvider.dart:12:11 - The value of the field '_parentEndpoint' isn't used. Try removing the field, or using it. - unused_field
+warning - lib\providers\EnseignantProvider.dart:13:20 - The value of the field '_parentEndpointFuture' isn't used. Try removing the field, or using it. - unused_field
+warning - lib\providers\Rdv_provider.dart:82:20 - The declaration 'getInfoParent' isn't referenced. Try removing the declaration of 'getInfoParent'. - unused_element
+warning - lib\providers\Rdv_provider.dart:258:13 - The value of the local variable 'test' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\providers\student_provider.dart:9:9 - The value of the field '_baseUrl' isn't used. Try removing the field, or using it. - unused_field
+   info - lib\Screens\Auth\Auth.dart:1:1 - The file name 'Auth.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Auth\Auth.dart:54:41 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\Auth\Auth.dart:54:45 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\DashboardPage.dart:1:1 - The file name 'DashboardPage.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\DashboardPage.dart:100:47 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\DashboardPage.dart:100:51 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\Enseignant\ClasseEnseignant.dart:1:1 - The file name 'ClasseEnseignant.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Enseignant\TeacherStudentsParentsScreen.dart:1:1 - The file name 'TeacherStudentsParentsScreen.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Enseignant\TeacherStudentsParentsScreen.dart:97:16 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib\Screens\Enseignant\disponibilite_configuration_screen.dart:340:29 - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Enseignant\disponibilite_configuration_screen.dart:504:56 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - lib\Screens\Enseignant\disponibilite_configuration_screen.dart:575:30 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - lib\Screens\Enseignant\disponibilite_configuration_screen.dart:584:30 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - lib\Screens\Enseignant\disponibilite_configuration_screen.dart:590:29 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - lib\Screens\Enseignant\disponibilite_configuration_screen.dart:781:47 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\Enseignant\home_Enseignant.dart:1:1 - The file name 'home_Enseignant.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Pedagogique\ClassLevelsPage.dart:1:1 - The file name 'ClassLevelsPage.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Pedagogique\CreationRdvPdagogique.dart:1:1 - The file name 'CreationRdvPdagogique.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:1:1 - The file name 'Pd_rendezvous_screen.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:74:7 - The type name 'Pd_rendezvous_screen' isn't an UpperCamelCase identifier. Try changing the name to follow the UpperCamelCase style. - camel_case_types
+   info - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:81:7 - The type name '_Pd_rendezvous_screenState' isn't an UpperCamelCase identifier. Try changing the name to follow the UpperCamelCase style. - camel_case_types
+   info - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:408:47 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:410:66 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:426:53 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:576:47 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\Pedagogique\Pd_rendezvous_screen.dart:576:51 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\Pedagogique\home_Pedagogique.dart:1:1 - The file name 'home_Pedagogique.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Rdv\ChooseCreneauScreen.dart:1:1 - The file name 'ChooseCreneauScreen.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Rdv\ChooseCreneauScreen.dart:58:35 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ChooseCreneauScreen.dart:59:43 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ChooseCreneauScreen.dart:60:12 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ChooseCreneauScreen.dart:66:28 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ChooseCreneauScreen.dart:67:36 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ChooseCreneauScreen.dart:74:35 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ChooseCreneauScreen.dart:75:43 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ConfirmAndSendScreen.dart:1:1 - The file name 'ConfirmAndSendScreen.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Rdv\ConfirmAndSendScreen.dart:63:28 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ConfirmAndSendScreen.dart:63:58 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\Screens\Rdv\ConfirmAndSendScreen.dart:309:31 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - lib\Screens\Rdv\SuccessRdvScreen.dart:1:1 - The file name 'SuccessRdvScreen.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Rdv\creationRDV.dart:1:1 - The file name 'creationRDV.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Rdv\creationRDV.dart:26:33 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - lib\Screens\Rdv\creationRDV.dart:29:13 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - lib\Screens\Rdv\rendezvous_screen.dart:189:14 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib\Screens\Rdv\rendezvous_screen.dart:214:14 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib\Screens\Rdv\rendezvous_screen.dart:218:14 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib\Screens\Rdv\rendezvous_screen.dart:285:7 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - lib\Screens\Rdv\rendezvous_screen.dart:339:55 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Rdv\rendezvous_screen.dart:341:74 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Rdv\rendezvous_screen.dart:358:63 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Rdv\rendezvous_screen.dart:464:64 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib\Screens\Rdv\rendezvous_screen.dart:470:56 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib\Screens\Rdv\rendezvous_screen.dart:481:62 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib\Screens\Rdv\rendezvous_screen.dart:487:54 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib\Screens\Rdv\rendezvous_screen.dart:614:47 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\Rdv\rendezvous_screen.dart:614:51 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib\Screens\Rdv\rendezvous_screen.dart:650:48 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Rdv\rendezvous_screen.dart:984:38 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Rdv\rendezvous_screen.dart:987:33 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Rdv\rendezvous_screen.dart:1069:32 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\TestInterfacePage.dart:1:1 - The file name 'TestInterfacePage.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\TestInterfacePage.dart:4:9 - Parameter 'key' could be a super parameter. Trying converting 'key' to a super parameter. - use_super_parameters
+   info - lib\Screens\TestInterfacePage.dart:86:41 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\TestInterfacePage.dart:107:43 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\TestInterfacePage.dart:219:44 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\Screens\Widgets\ClasseCard.dart:1:1 - The file name 'ClasseCard.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Widgets\ClasseCard.dart:4:16 - The variable name 'NomClasse' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\Screens\Widgets\ClasseCard.dart:9:19 - The variable name 'NomClasse' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\Screens\Widgets\DashboardCard.dart:1:1 - The file name 'DashboardCard.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\Widgets\FinalCard.dart:1:1 - The file name 'FinalCard.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\parent\home_Parent.dart:1:1 - The file name 'home_Parent.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\Screens\test.dart:8:3 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\Screens\test.dart:11:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\Screens\test.dart:14:3 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\clean.dart:8:3 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\providers\EnseignantProvider.dart:1:1 - The file name 'EnseignantProvider.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\providers\EnseignantProvider.dart:73:25 - The variable name 'GetEleveClass' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\providers\EnseignantProvider.dart:73:43 - The variable name 'IdC' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\providers\EnseignantProvider.dart:87:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\providers\EnseignantProvider.dart:90:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\providers\EnseignantProvider.dart:93:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\providers\EnseignantProvider.dart:108:11 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib\providers\EnseignantProvider.dart:153:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\providers\EnseignantProvider.dart:153:15 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib\providers\EnseignantProvider.dart:156:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\providers\EnseignantProvider.dart:156:13 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib\providers\EnseignantProvider.dart:163:23 - The variable name 'GetParentEleve' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\providers\EnseignantProvider.dart:197:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\providers\EnseignantProvider.dart:203:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib\providers\EnseignantProvider.dart:283:45 - Unnecessary braces in a string interpolation. Try removing the braces. - unnecessary_brace_in_string_interps
+   info - lib\providers\EnseignantProvider.dart:283:54 - Unnecessary braces in a string interpolation. Try removing the braces. - unnecessary_brace_in_string_interps
+   info - lib\providers\EnseignantProvider.dart:334:16 - The variable name 'UpdatePv' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\providers\EnseignantProvider.dart:357:23 - The variable name 'GetAllStudents' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\providers\Pd_Providers.dart:1:1 - The file name 'Pd_Providers.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\providers\Rdv_provider.dart:1:1 - The file name 'Rdv_provider.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\providers\Rdv_provider.dart:204:17 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib\ttt\TrimestreDashboard.dart:1:1 - The file name 'TrimestreDashboard.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - lib\ttt\classcards.dart:62:46 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\ttt\classcards.dart:81:43 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - test\widget_test.dart:7:7 - The type name 'widget_test' isn't an UpperCamelCase identifier. Try changing the name to follow the UpperCamelCase style. - camel_case_types
+
+133 issues found.

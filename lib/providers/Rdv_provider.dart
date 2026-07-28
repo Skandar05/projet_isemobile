@@ -271,17 +271,9 @@ Future<void> createRDV({
 
     if (response.statusCode == 200) {
       final dynamic data = jsonDecode(response.body);
-      debugPrint('Fetched parent RDVs: $data');
-
+      
       if (data is List) {
         return data
-            .where(
-        (rdv) =>
-            rdv['demandeur_role']
-                ?.toString()
-                .toLowerCase() ==
-            'parent',
-      )
             .map((rdv) => rdv as Map<String, dynamic>)
             .toList();
       }
@@ -302,50 +294,7 @@ Future<void> createRDV({
 }
 
 
-  Future<List<Map<String, dynamic>>> getParentRDV2(int idParent) async {
-  final resolvedParentId = await resolveParentId(idParent);
-  final effectiveParentId = resolvedParentId > 0 ? resolvedParentId : idParent;
-
-  try {
-    final response = await http.get(
-      Uri.parse(
-        '$_baseUrl/getRendezVousParentTous/$effectiveParentId',
-      ),
-      headers: {'Content-Type': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      final dynamic data = jsonDecode(response.body);
-
-
-      if (data is List) {
-        return data
-            .where(
-        (rdv) =>
-            rdv['demandeur_role']
-                ?.toString()
-                .toLowerCase() ==
-            'enseignant',
-      )
-            .map((rdv) => rdv as Map<String, dynamic>)
-            .toList();
-      }
-
-      if (data is Map<String, dynamic>) {
-        return [data];
-      }
-
-      return [];
-    } else {
-      debugPrint('Failed to fetch parent RDVs: ${response.statusCode}');
-      return [];
-    }
-  } catch (e) {
-    debugPrint('Error fetching RDVs: $e');
-    return [];
-  }
-}
-
+  
 // ===== TEACHER RDV METHODS =====
 
   Future<List<Map<String, dynamic>>> getTeacherRDV(int idTeacher) async {
@@ -362,13 +311,7 @@ Future<void> createRDV({
 
         if (data is List) {
           return data
-              .where(
-        (rdv) =>
-            rdv['demandeur_role']
-                ?.toString()
-                .toLowerCase() ==
-            'enseignant',
-            )
+              
               .map((rdv) => rdv as Map<String, dynamic>)
               .toList();
         }
@@ -388,45 +331,7 @@ Future<void> createRDV({
     }
   }
 
-    Future<List<Map<String, dynamic>>> getTeacherRDV2(int idTeacher) async {
-    try {
-      final response = await http.get(
-        Uri.parse(
-          '$_baseUrl/GetRendezVousEnseignantParent/$idTeacher',
-        ),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final dynamic data = jsonDecode(response.body);
-
-        if (data is List) {
-          return data
-              .where(
-        (rdv) =>
-            rdv['demandeur_role']
-                ?.toString()
-                .toLowerCase() ==
-            'parent',
-            )
-              .map((rdv) => rdv as Map<String, dynamic>)
-              .toList();
-        }
-
-        if (data is Map<String, dynamic>) {
-          return [data];
-        }
-
-        return [];
-      } else {
-        debugPrint('Failed to fetch teacher RDVs: ${response.statusCode}');
-        return [];
-      }
-    } catch (e) {
-      debugPrint('Error fetching teacher RDVs: $e');
-      return [];
-    }
-  }
+    
 
   Future<void> acceptTeacherRDV(int rdvId) async {
     try {

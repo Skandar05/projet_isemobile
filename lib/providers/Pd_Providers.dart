@@ -98,8 +98,8 @@ Future<void> creationdiponibilite (int idPedagogique , String debut, String fin,
     },
     body: jsonEncode({
       
-      'disponibilite_debut': debut,
-      'disponibilite_fin': fin,
+      'heuredebut': debut,
+      'heurefin': fin,
       'jour': jour,
     }),
   );

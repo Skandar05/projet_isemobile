@@ -6,8 +6,8 @@ import 'package:test/Screens/Pedagogique/Pd_rendezvous_screen.dart';
 
 import '../../providers/auth_provider.dart';
 
-class HomeCScreen extends StatelessWidget {
-  const HomeCScreen({super.key});
+class HomePD extends StatelessWidget {
+  const HomePD({super.key});
 
   @override
   Widget build(BuildContext context) {

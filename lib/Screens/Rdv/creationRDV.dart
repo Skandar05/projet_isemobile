@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:test/Screens/Rdv/rendezvous_screen.dart';
+import 'package:test/Screens/Widgets/custom_app_bar.dart';
+import 'package:test/Screens/parent/home_Parent.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'package:test/Screens/Rdv/ChooseCreneauScreen.dart';
 
@@ -63,82 +65,18 @@ class _ChooseContactScreenState extends State<ChooseContactScreen> {
 
               padding: const EdgeInsets.symmetric(horizontal:18),
 
-              child: Row(
+              child:  CustomAppBar(
+              interfacePage:const HomeParent(),
 
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+              title: "Espace parent",
+          
 
+              subtitle: "Créer un rendez-vous pédagogique",
 
-                children: [
-
-
-                  InkWell(
-
-                    onTap: (){
-                      Navigator.pop(context);
-
-                    },
-
-                    child: CircleAvatar(
-
-                      backgroundColor: Colors.white,
-
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        size:18,
-                        color:primary,
-                      ),
-
-                    ),
-
-                  ),
-
-
-
-                  Row(
-
-                    children: [
-
-                      CircleAvatar(
-
-                        backgroundColor:Colors.white,
-
-                        child: Icon(
-                          Icons.notifications_none,
-                          color:primary,
-                        ),
-
-                      ),
-
-
-                      const SizedBox(width:10),
-
-
-
-                      CircleAvatar(
-
-                        backgroundColor:primary,
-
-                        child: ClipOval(
-
-                          child: Image.asset(
-                            'lib/images/logoise.png',
-                            fit:BoxFit.cover,
-                          ),
-
-                        ),
-
-                      )
-
-                    ],
-
-                  )
-
-                ],
-
+              showBackButton: true,
               ),
-
-            ),
+              ),
+              
 
 
 
