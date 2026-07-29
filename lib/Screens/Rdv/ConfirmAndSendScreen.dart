@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test/providers/Rdv_provider.dart';
 import 'ChooseCreneauScreen.dart';
 import 'SuccessRdvScreen.dart';
+import 'package:test/Screens/Widgets/custom_app_bar.dart';
+import 'package:test/Screens/parent/home_Parent.dart';
+import 'package:test/Screens/Enseignant/home_Enseignant.dart';
 
 class ConfirmAndSendScreen extends StatefulWidget {
   const ConfirmAndSendScreen({super.key, required this.isTeacher});
@@ -81,6 +84,15 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffEEF3F8),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(200),
+        child: CustomAppBar(
+          interfacePage: widget.isTeacher ? const HomeEnseignant() : const HomeParent(),
+          title: "Confirmer & envoyer",
+          subtitle: "",
+          showBackButton: true,
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -88,55 +100,6 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // 🔙 Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                            Navigator.pop(context);
-                          },
-                      child: const CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.arrow_back_ios_new,
-                          size: 18,
-                          color: Color(0xff1F4B8F),
-                        ),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        const CircleAvatar(
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.notifications_none,
-                            color: Color(0xff1F4B8F),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        CircleAvatar(
-                          backgroundColor: const Color(0xff1F4B8F),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'lib/images/logoise.png',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                const Text(
-                  "Confirmer & envoyer",
-                  style: TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.bold),
-                ),
 
                 const SizedBox(height: 20),
 

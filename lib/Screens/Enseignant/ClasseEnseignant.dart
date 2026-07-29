@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test/Screens/Enseignant/home_Enseignant.dart';
 import 'package:test/Screens/Enseignant/student_search_utils.dart';
 import 'package:test/Screens/Rdv/ChooseCreneauScreen.dart';
+import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import 'package:test/providers/EnseignantProvider.dart';
 
 class ClasseEnseignant extends StatefulWidget {
@@ -198,13 +200,13 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: const Color(0xff253858),
-        title: const Text(
-          'Demander un rendez-vous',
-          style: TextStyle(fontWeight: FontWeight.w700),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(200),
+        child: const CustomAppBar(
+          interfacePage: HomeEnseignant(),
+          title: "Choisir un contact",
+          subtitle: "selectionnez un eleve pour continuer",
+          showBackButton: true,
         ),
       ),
       body: SafeArea(

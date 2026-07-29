@@ -46,23 +46,4 @@ class StudentProvider extends ChangeNotifier {
 
   }
 
-
-
-  // CLEAR
-  Future<void> clearStudent() async {
-
-    final prefs = await SharedPreferences.getInstance();
-
-
-    await prefs.remove('idEleve');
-    await prefs.remove('idClasse');
-
-
-    idEleve = null;
-    idClasse = null;
-
-
-    notifyListeners();
-
-  }
 }

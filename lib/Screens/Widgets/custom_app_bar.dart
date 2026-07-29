@@ -7,18 +7,22 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.interfacePage,
     this.subtitle,
     this.showBackButton = false,
+    this.showProfileButton = true,
+    this.showTitle = true,
   });
 
   final String title;
   final Widget interfacePage;
   final String? subtitle;
   final bool showBackButton;
+  final bool showProfileButton;
+  final bool showTitle;
 
   @override
   Size get preferredSize {
-    double height = 145;
+    double height = showTitle ? 145 : 100;
 
-    if (subtitle != null && subtitle!.isNotEmpty) {
+    if (showTitle && subtitle != null && subtitle!.isNotEmpty) {
       height += 30;
     }
 
@@ -76,51 +80,54 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
                     const SizedBox(width: 12),
 
-                    InkWell(
-                      borderRadius: BorderRadius.circular(35),
-                      onTap: () {
-                        // Action when profile image is pressed
-                        Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => interfacePage,
-                    ),
-                  );
-                      },
-                      child: const CircleAvatar(
-                        radius: 28, 
-                        backgroundImage: AssetImage(
-                          'lib/images/logoise.png',
+                    if (showProfileButton)
+                      InkWell(
+                        borderRadius: BorderRadius.circular(35),
+                        onTap: () {
+                          // Action when profile image is pressed
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => interfacePage,
+                            ),
+                          );
+                        },
+                        child: const CircleAvatar(
+                          radius: 28,
+                          backgroundImage: AssetImage(
+                            'lib/images/logoise.png',
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
 
-                const SizedBox(height: 24),
+                if (showTitle) ...[
+                  const SizedBox(height: 24),
 
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: media.textScaler.scale(24),
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF25324B),
-                  ),
-                ),
-
-                if (subtitle != null && subtitle!.isNotEmpty) ...[
-                  const SizedBox(height: 6),
                   Text(
-                    subtitle!,
+                    title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: media.textScaler.scale(15),
-                      color: Colors.grey.shade600,
+                      fontSize: media.textScaler.scale(24),
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF25324B),
                     ),
                   ),
+
+                  if (subtitle != null && subtitle!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: media.textScaler.scale(15),
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
                 ],
               ],
             ),

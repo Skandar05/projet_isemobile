@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'creationRDV.dart';
 import 'ConfirmAndSendScreen.dart';
+import 'package:test/Screens/Widgets/custom_app_bar.dart';
+import '../parent/home_Parent.dart';
+import '../Enseignant/home_Enseignant.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ChooseCreneauScreen extends StatefulWidget {
@@ -31,7 +33,6 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   bool isLoading = true;
   String? errorMessage;
   // Debug helpers
-  final bool _showDebug = true;
   String debugRawResponse = '';
   int debugResolvedTeacherId = 0;
 
@@ -159,7 +160,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
           .timeout(const Duration(seconds: 10));
 
         // expose debug info
-        debugRawResponse = response.body ?? '';
+        debugRawResponse = response.body;
         debugResolvedTeacherId = teacherId;
 
       if (response.statusCode == 200) {
@@ -386,68 +387,20 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(200),
+        child: CustomAppBar(
+          interfacePage: widget.isTeacher ? const HomeEnseignant() : const HomeParent(),
+          title:  "Choisir un créneau",
+          subtitle: "selectionnez un créneau pour continuer",
+          showBackButton: true,
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-
-              // HEADER
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    child: const CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 18,
-                        color: Color(0xff1F4B8F),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.notifications_none,
-                          color: Color(0xff1F4B8F),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      CircleAvatar(
-                        backgroundColor: const Color(0xff1F4B8F),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'lib/images/logoise.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "Nouveau rendez-vous",
-                style: TextStyle(color: Colors.grey),
-              ),
-
-              const Text(
-                "Choisir un créneau",
-                style: TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-
+              children: [
               const SizedBox(height: 20),
 
               // 📊 Stepper
@@ -730,7 +683,6 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                           await prefs.setString('selectedTimeValue', selectedSlot['time'] ?? '');
                           await prefs.setString('selectedTimeStart', selectedSlot['start'] ?? '');
                           await prefs.setString('selectedTimeEnd', selectedSlot['end'] ?? '');
-                          final flow = prefs.getString('rdvFlow') ?? 'parent';
 
                           if (!context.mounted) {
                             return;

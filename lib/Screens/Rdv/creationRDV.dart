@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:test/Screens/Rdv/rendezvous_screen.dart';
+// removed unused import
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import 'package:test/Screens/parent/home_Parent.dart';
 import 'package:test/providers/Rdv_provider.dart';
@@ -24,13 +24,12 @@ class _ChooseContactScreenState extends State<ChooseContactScreen> {
   void initState() {
     super.initState();
 
-    Future.microtask(() {
-       Provider.of<RdvProvider>(context, listen: false)
-          .checkRole(
-            role: "parent",
-            context: context,
-          ); 
-          
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Provider.of<RdvProvider>(context, listen: false).checkRole(
+        role: "parent",
+        context: context,
+      );
     });
   }
 
@@ -49,68 +48,26 @@ class _ChooseContactScreenState extends State<ChooseContactScreen> {
 
       backgroundColor: const Color(0xffF5F7FB),
 
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(200),
+        child: const CustomAppBar(
+          interfacePage: HomeParent(),
+          title: "Choisir un contact",
+          subtitle: "selectionnez un enseignant pour continuer",
+          showBackButton: true,
+        ),
+      ),
+
       body: SafeArea(
 
         child: Column(
 
           children: [
 
-
-            const SizedBox(height: 10),
-
-
-            // HEADER
-
-            Padding(
-
-              padding: const EdgeInsets.symmetric(horizontal:18),
-
-              child:  CustomAppBar(
-              interfacePage:const HomeParent(),
-
-              title: "Espace parent",
-          
-
-              subtitle: "Créer un rendez-vous pédagogique",
-
-              showBackButton: true,
-              ),
-              ),
-              
-
-
-
-            const SizedBox(height:15),
-
-
-
-            const Text(
-
-              'Choisir un contact',
-
-              style:TextStyle(
-
-                fontSize:24,
-
-                fontWeight:FontWeight.bold,
-
-              ),
-
-            ),
-
-
-
-            const SizedBox(height:15),
-
-
-
-
-            // STEP INDICATOR
-
             Padding(
 
               padding:
-                  const EdgeInsets.symmetric(horizontal:20),
+                  const EdgeInsets.symmetric(horizontal:20,vertical:20),
 
               child: Row(
 

@@ -12,10 +12,9 @@ import 'package:test/providers/Rdv_provider.dart';
 import 'package:test/providers/disponibilite_provider.dart';
 import 'package:test/providers/Pd_Providers.dart';
 import 'package:test/Screens/Pedagogique/ClassLevelsPage.dart';
-import 'package:test/ttt/disponibilite_test.dart';
+
 import 'providers/auth_provider.dart';
 import 'Screens/Auth/Auth.dart';
-import '/ttt/TrimestreDashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

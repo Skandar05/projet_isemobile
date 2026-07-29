@@ -79,10 +79,7 @@ class RdvProvider extends ChangeNotifier {
     }
 
     else if (role == 'enseignant') {
-      Future<void> getInfoParent(BuildContext context) async {
-       final enseignantProvider =Provider.of<EnseignantProvider>(context, listen: false);
-       await enseignantProvider.getEnseignantsClasse(idEnseignant ?? 0);
-    }
+     
     }
   }
 
@@ -411,6 +408,91 @@ Future<void> createRDV({
       debugPrint('Error creating RDV by teacher: $e');
     }
   }
+
+
+  //creation rendez vous by parent and pedagogical 
+  Future<int>createPDRdv({
+    required int idpd,
+    required int idParent,
+    required String date,
+    required String timeStart,
+    required String timeEnd,
+    required String motif,
+    required String role,
+    })async{
+    int Statecode= 500;
+    final resolvedParentId = await resolveParentId(idParent);
+    debugPrint('Response body: Creating RDV for pedagogical $idpd with parent $resolvedParentId on $date from $timeStart to $timeEnd for motif: $motif');
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/rendezvous/7'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+
+          "id_parent": resolvedParentId,
+          "date": date,
+          "heureDebut": timeStart,
+          "heureFin": timeEnd,
+          "motif": motif,
+          "demandeur_role": role,
+          "pedagogique": idpd
+        }),
+        
+      );
+      debugPrint('Response status code: ${response.statusCode}');
+      
+      Statecode = response.statusCode;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('RDV created successfully by PD');
+      } else {
+        debugPrint('Failed to create RDV by PD: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error creating RDV by PD: $e');
+    }
+    return Statecode;
+  }
+
+  Future<List<dynamic>>loadpd()async{
+    List<dynamic> pedagogiques = [];
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/pedagogique/liste'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+
+        if (data is List) {
+          pedagogiques = data;
+        } else if (data is Map<String, dynamic>) {
+          pedagogiques = [data];
+        } else {
+          debugPrint('Unexpected data format for pedagogiques: $data');
+        }
+      } else {
+        debugPrint('Failed to load pedagogiques: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error loading pedagogiques: $e');
+    }
+    return pedagogiques;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 }

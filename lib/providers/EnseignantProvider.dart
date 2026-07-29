@@ -45,30 +45,7 @@ class EnseignantProvider extends ChangeNotifier {
     return classes;
   }
 
-/*   Future<void> getEnseignantsMatier(int IdE) async {
-    List<String> matieres = [];
 
-    try {
-      final response = await _client.get(
-        Uri.parse('$_baseUrl/GetMatiereEnseignant/$IdE/'),
-        headers: {'Content-Type': 'application/json'},
-      );
-      final perf = await SharedPreferences.getInstance();
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        for (var item in data) {
-          matieres.add(item['Nommatierefr']);
-        }
-        await perf.setStringList('matieres', matieres);
-      } else {
-        print('Failed to load enseignants. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error fetching enseignants: $e');
-    }
-  } */
 
   Future<List<dynamic>> GetEleveClass(int IdC) async {
     List<dynamic> eleves = [];
@@ -305,7 +282,7 @@ Future<Map<String, dynamic>?> getPv(
 ) async {
   try {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/api/pvrendezvous/'),
+      Uri.parse('$_baseUrl/api/pvrendezvous/$idRdv/$idEnseignant'),
       headers: {'Content-Type': 'application/json'},
     );
 
@@ -313,11 +290,7 @@ Future<Map<String, dynamic>?> getPv(
       final List<dynamic> data = jsonDecode(response.body);
 
       for (final item in data) {
-        if (item['id_rendezvous'] == idRdv &&
-            item['id_enseignant'] == idEnseignant) {
-          debugPrint('PV found: $item');
-          return Map<String, dynamic>.from(item);
-        }
+        return Map<String, dynamic>.from(item);
       }
 
       debugPrint('No PV found');
