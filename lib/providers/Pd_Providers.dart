@@ -182,4 +182,53 @@ Future<List<dynamic>> getAllClasses() async {
   }
 }
 
+Future<void>updatedisponibility(int idDisponibilite, String debut, String fin, String jour) async {
+  final baseUrl = _baseUrl;
+
+  if (baseUrl == null || baseUrl.isEmpty) {
+    throw Exception('BACKEND_URL is not configured');
+  }
+
+  final response = await _client.put(
+    Uri.parse('$baseUrl/api/Pedagogique/disponibilites/$idDisponibilite'),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({
+      'heuredebut': debut,
+      'heurefin': fin,
+      'jour': jour,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      'Failed to update disponibilite (${response.statusCode})',
+    );
+  }
+}
+
+Future<void> deletedisponibility(int idDisponibilite) async {
+  final baseUrl = _baseUrl;
+
+  if (baseUrl == null || baseUrl.isEmpty) {
+    throw Exception('BACKEND_URL is not configured');
+  }
+
+  final response = await _client.delete(
+    Uri.parse('$baseUrl/api/Pedagogique/disponibilites/$idDisponibilite'),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      'Failed to delete disponibilite (${response.statusCode})',
+    );
+  }
+
+
+}
+
 }

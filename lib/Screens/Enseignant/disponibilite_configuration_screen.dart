@@ -444,26 +444,26 @@ await showModalBottomSheet<void>(
                                 bool success = false;
 
                                 if (isPedagogique) {
-                                  if (isEditing) {
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'La modification n\'est pas encore supportée pour ce mode.',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-
                                   try {
-                                    await context.read<PdProvider>().creationdiponibilite(
-                                      _teacherId!,
-                                      _formatTime(startTime),
-                                      _formatTime(endTime),
-                                      selectedDay,
-                                    );
-                                    success = true;
+                                    if (isEditing) {
+                                      // Update existing pedagogique disponibilite
+                                      await context.read<PdProvider>().updatedisponibility(
+                                        disponibilite['id'],
+                                        _formatTime(startTime),
+                                        _formatTime(endTime),
+                                        selectedDay,
+                                      );
+                                      success = true;
+                                    } else {
+                                      // Create new pedagogique disponibilite
+                                      await context.read<PdProvider>().creationdiponibilite(
+                                        _teacherId!,
+                                        _formatTime(startTime),
+                                        _formatTime(endTime),
+                                        selectedDay,
+                                      );
+                                      success = true;
+                                    }
                                   } catch (e) {
                                     if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -571,22 +571,30 @@ await showModalBottomSheet<void>(
     );
 
     if (confirmed == true) {
-      if (widget.isPedagogique) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('La suppression n\'est pas encore supportée pour ce mode.'),
-          ),
-        );
-        return;
-      }
-
       if (_teacherId == null || _teacherId == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('ID Enseignant introuvable.')),
         );
         return;
       }
-      
+
+      if (widget.isPedagogique) {
+        try {
+          await context.read<PdProvider>().deletedisponibility(disponibilite['id']);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Disponibilité supprimée.')),
+          );
+          await _loadTeacherAndDisponibilites();
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erreur lors de la suppression: ${e.toString()}')),
+          );
+        }
+        return;
+      }
+
       final success = await context.read<DisponibiliteProvider>().deleteDisponibilite(
         _teacherId!,
         disponibilite['id'],
