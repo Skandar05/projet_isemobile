@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:test/Screens/Enseignant/home_Enseignant.dart';
+import 'package:test/Screens/Pedagogique/HomePD.dart';
+import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/providers/Pd_Providers.dart';
 import 'package:test/providers/Rdv_provider.dart';
@@ -688,30 +691,14 @@ await showModalBottomSheet<void>(
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: const Color(0xff253858),
-        title: const Text(
-          'Configuration des disponibilités',
-          style: TextStyle(fontWeight: FontWeight.w700),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(200),
+        child: CustomAppBar(
+          interfacePage: widget.isPedagogique ? const HomePD() : const HomeEnseignant(),
+          title: "Configuration des disponibilités",
+          subtitle: "",
+          showBackButton: true,
         ),
-        actions: [
-          IconButton(
-            onPressed: _teacherId == null || _teacherId == 0
-                ? null
-                : () {
-                    if (isPedagogique) {
-                      _loadTeacherAndDisponibilites();
-                    } else {
-                      context
-                          .read<DisponibiliteProvider>()
-                          .loadDisponibilites(_teacherId!);
-                    }
-                  },
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
       ),
 floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openDisponibiliteForm(),

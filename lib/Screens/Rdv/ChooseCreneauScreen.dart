@@ -248,6 +248,42 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     return _startOfWeek(DateTime.now()).add(Duration(days: selectedWeekOffset * 7));
   }
 
+  bool _isTodayDate(String? value) {
+    final parsedDate = DateTime.tryParse(value ?? '');
+    if (parsedDate == null) return false;
+
+    final now = DateTime.now();
+    return parsedDate.year == now.year &&
+        parsedDate.month == now.month &&
+        parsedDate.day == now.day;
+  }
+
+  bool _isFutureSlot(Map<String, String> slot, String? dateValue) {
+    if (!_isTodayDate(dateValue)) return true;
+
+    final slotStart = slot['start'] ?? '';
+    final parts = slotStart.split(':');
+    if (parts.length != 2) return true;
+
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    final now = DateTime.now();
+    final slotDateTime = DateTime(now.year, now.month, now.day, hour, minute);
+
+    return slotDateTime.isAfter(now);
+  }
+
+  List<Map<String, String>> _slotsForDateEntry(Map<String, String> dateEntry) {
+    final label = dateEntry['label'] ?? '';
+
+    return allDateSlots.where((slot) {
+      final slotLabel = slot['label'] ?? '';
+      return slot['jour'] == dateEntry['jour'] &&
+          slotLabel == label &&
+          _isFutureSlot(slot, dateEntry['value']);
+    }).toList();
+  }
+
   void _applyWeekFilter() {
     availableDates.clear();
     filteredSlots.clear();
@@ -270,6 +306,11 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
       }
 
       if (parsedDate.isBefore(weekStart) || parsedDate.isAfter(weekEnd)) {
+        continue;
+      }
+
+      final dateSlots = _slotsForDateEntry(date);
+      if (dateSlots.isEmpty) {
         continue;
       }
 
@@ -368,11 +409,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
 
   void _selectDate(int index) {
     final dateEntry = availableDates[index];
-    final label = dateEntry['label'] ?? '';
-    final slotsForDate = allDateSlots.where((slot) {
-      final slotLabel = slot['label'] ?? '';
-      return slot['jour'] == dateEntry['jour'] && slotLabel == label;
-    }).toList();
+    final slotsForDate = _slotsForDateEntry(dateEntry);
 
     setState(() {
       selectedDayIndex = index;

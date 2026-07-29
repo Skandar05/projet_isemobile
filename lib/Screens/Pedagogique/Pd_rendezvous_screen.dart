@@ -4,6 +4,7 @@ import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Pedagogique/ClassLevelsPage.dart';
 import 'package:test/Screens/Pedagogique/HomePD.dart';
+import 'package:test/Screens/Pedagogique/RdvPedagogiqueParent.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import 'package:test/Screens/parent/home_Parent.dart';
@@ -804,7 +805,7 @@ Widget build(BuildContext context) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ClassLevelsPage(),
+                        builder: (context) => const RdvPdParent(),
                       ),
                     );
                   },

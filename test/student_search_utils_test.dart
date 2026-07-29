@@ -30,4 +30,40 @@ void main() {
       expect(result.first['fullName'], 'Alice Martin');
     });
   });
+
+  group('filterClassesByQuery', () {
+    final classes = [
+      {'id': 1, 'nomclassefr': 'Mathématiques'},
+      {'id': 2, 'nomclassefr': 'Physique Chimie'},
+    ];
+
+    test('returns all classes when query is empty', () {
+      expect(filterClassesByQuery(classes, ''), hasLength(2));
+    });
+
+    test('matches by class name in a case-insensitive way', () {
+      final result = filterClassesByQuery(classes, 'phys');
+      expect(result, hasLength(1));
+      expect(result.first['id'], 2);
+    });
+
+    test('matches by numeric id', () {
+      final result = filterClassesByQuery(classes, '1');
+      expect(result, hasLength(1));
+      expect(result.first['nomclassefr'], 'Mathématiques');
+    });
+
+    test('matches flattened student records by full name and parent names', () {
+      final students = [
+        {
+          'fullName': 'Sami Ben Ali',
+          'className': '1S3',
+          'parentNames': 'Ahmed Ben Ali',
+        },
+      ];
+
+      expect(filterClassesByQuery(students, 'sami'), hasLength(1));
+      expect(filterClassesByQuery(students, 'ahmed'), hasLength(1));
+    });
+  });
 }

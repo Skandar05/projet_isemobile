@@ -1,14 +1,23 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test/Screens/Auth/Auth.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Pedagogique/Pd_rendezvous_screen.dart';
+import 'package:test/providers/Pd_Providers.dart';
 
 import '../../providers/auth_provider.dart';
 
-class HomePD extends StatelessWidget {
+class HomePD extends StatefulWidget {
   const HomePD({super.key});
 
+  @override
+  State<HomePD> createState() => _HomePDState();
+}
+
+class _HomePDState extends State<HomePD> {
   @override
   Widget build(BuildContext context) {
     return const _HomePedagogiqueBody();
@@ -23,7 +32,24 @@ class _HomePedagogiqueBody extends StatefulWidget {
 }
 
 class _HomePedagogiqueBodyState extends State<_HomePedagogiqueBody> {
+  Future<void> _loadClasses() async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final classes = await PdProvider().getAllClasses();
+      prefs.setString('classes', jsonEncode(classes));
+    } catch (e) {
+      debugPrint('Failed to load classes: $e');
+    }
+  }
+
   @override
+  void initState() {
+    super.initState();
+    _loadClasses();
+  }
+
+
+
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF243B7B);
     const Color backgroundColor = Color(0xFFF3F6FC);
