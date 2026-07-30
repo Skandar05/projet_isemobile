@@ -437,13 +437,13 @@ Future<void> loadCounts() async {
               const SizedBox(height: 20),
               _detailRow(
                 icon: Icons.send,
-                title: 'Expéditeur',
+                title: 'from',
                 value: senderName.isEmpty ? 'Non renseigné' : senderName,
               ),
               const SizedBox(height: 14),
               _detailRow(
                 icon: Icons.inbox,
-                title: 'Destinataire',
+                title: 'to',
                 value: receiverName.isEmpty ? 'Non renseigné' : receiverName,
               ),
               
@@ -729,6 +729,8 @@ Widget build(BuildContext context) {
 
                             return AppointmentCard(
                               tutorName: _contactName(rdv),
+                              fromName: _senderName(rdv),
+                              toName: _receiverName(rdv),
                               subject: _extractText(
                                 rdv,
                                 [

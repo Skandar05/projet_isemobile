@@ -8,6 +8,8 @@ class AppointmentCard extends StatelessWidget {
   final String state;
   final String time;
   final Color scolor;
+  final String? fromName;
+  final String? toName;
   final VoidCallback? onTap;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
@@ -23,6 +25,8 @@ class AppointmentCard extends StatelessWidget {
     required this.time,
     required this.state,
     required this.scolor,
+    this.fromName,
+    this.toName,
     this.onTap,
     this.onAccept,
     this.onReject,
@@ -54,7 +58,7 @@ class AppointmentCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Avatar
                   Container(
@@ -79,54 +83,46 @@ class AppointmentCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                tutorName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xff334155),
-                                ),
+                        if ((fromName?.isNotEmpty ?? false) || (toName?.isNotEmpty ?? false)) ...[
+                          if (fromName?.isNotEmpty ?? false)
+                            Text(
+                              'from ${fromName!}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xff334155),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: scolor,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                state,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                          if (toName?.isNotEmpty ?? false) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'to ${toName!}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xff334155),
                               ),
                             ),
                           ],
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        Text(
-                          "$subject : $duration",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xff334155),
+                        ] else ...[
+                          Text(
+                            "$subject : $duration",
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: true,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xff334155),
+                            ),
                           ),
-                        ),
+                        ],
 
                         const SizedBox(height: 6),
 

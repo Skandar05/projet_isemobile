@@ -217,7 +217,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
       return demandeurRole.contains('parent');
     } else {
       // Parent can act on teacher-initiated requests
-      return demandeurRole.contains('teacher');
+      return demandeurRole.contains('teacher') || demandeurRole.contains('enseignant');
     }
   }
 
@@ -368,13 +368,13 @@ class _RendezVousPageState extends State<RendezVousPage> {
                       const SizedBox(height: 20),
                       _detailRow(
                         icon: Icons.send,
-                        title: 'Expéditeur',
+                        title: 'from',
                         value: senderName.isEmpty ? 'Non renseigné' : senderName,
                       ),
                       const SizedBox(height: 14),
                       _detailRow(
                         icon: Icons.inbox,
-                        title: 'Destinataire',
+                        title: 'to',
                         value: receiverName.isEmpty ? 'Non renseigné' : receiverName,
                       ),
                       
@@ -793,6 +793,8 @@ Widget build(BuildContext context) {
                               tutorName:
                                   _contactName(rdv),
 
+                              fromName: _senderName(rdv),
+                              toName: _receiverName(rdv),
 
                               subject:
                                   (rdv['nomMatiere'] ??
@@ -801,19 +803,16 @@ Widget build(BuildContext context) {
                                           "Rendez-vous")
                                       .toString(),
 
-
                               duration:
                                   _formatDuration(
                                 heureDebut,
                                 heureFin,
                               ),
 
-
                               date:
                                   (rdv['date'] ??
                                           "Date à confirmer")
                                       .toString(),
-
 
                               time:
                                   heureDebut.isEmpty &&
@@ -821,10 +820,8 @@ Widget build(BuildContext context) {
                                       ? "Heure à confirmer"
                                       : "$heureDebut - $heureFin",
 
-
                               scolor:
                                   _statusColor(status),
-
 
                               state:
                                   _statusLabel(status),
