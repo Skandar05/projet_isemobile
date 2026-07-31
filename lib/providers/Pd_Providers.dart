@@ -198,100 +198,79 @@ Future<List<Map<String, dynamic>>> getAllStudentsForSearch() async {
 
   try {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/getIClasseActifMobile'),
+      Uri.parse('$baseUrl/api/eleves/classes/responsables'),
       headers: {
         'Content-Type': 'application/json',
       },
     );
 
     if (response.statusCode != 200) {
-      throw Exception(
-        'Failed to load classes. Status code: ${response.statusCode}',
-      );
+      return [];
     }
 
-    final decoded = jsonDecode(response.body);
+    final payload = jsonDecode(response.body);
 
-    if (decoded is! List) {
-      throw Exception('Expected a JSON array');
+    if (payload is! List) {
+      return [];
     }
 
-    for (final item in decoded) {
-      final classId = item['id'];
-      if (classId == null) {
-        continue;
-      }
+    for (final entry in payload) {
+      if (entry is! Map) continue;
 
-      final response2 = await _client.get(
-        Uri.parse('$baseUrl/api/parents-eleves-classe/$classId'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
+      final studentMap = Map<String, dynamic>.from(entry);
 
-      if (response2.statusCode != 200) {
-        continue;
-      }
+      final parentName =
+          studentMap['nomResponsable']?.toString() ?? '';
 
-      final payload = jsonDecode(response2.body);
-      if (payload is! List) {
-        continue;
-      }
+      final parentFirstName =
+          studentMap['prenomResponsable']?.toString() ?? '';
 
-      final className = item['nomclassefr']?.toString() ?? '';
+      final parents =
+          '$parentName $parentFirstName'.trim();
 
-      for (final entry in payload) {
-        if (entry is! Map) {
-          continue;
-        }
+      final int parentId =
+          int.tryParse(
+            studentMap['idResponsable']?.toString() ?? ''
+          ) ?? 0;
 
-        final studentMap = Map<String, dynamic>.from(entry);
-        final parents = studentMap['parents'];
-        final parentNames = <String>[];
+      final firstName =
+          studentMap['prenomEleve']?.toString() ?? '';
 
-        if (parents is List) {
-          for (final parent in parents) {
-            if (parent is Map) {
-              final firstName = parent['prenomfr']?.toString() ?? '';
-              final lastName = parent['nomfr']?.toString() ?? '';
-              final name = [firstName, lastName]
-                  .where((value) => value.isNotEmpty)
-                  .join(' ')
-                  .trim();
-              if (name.isNotEmpty) {
-                parentNames.add(name);
-              }
-            }
-          }
-        }
+      final lastName =
+          studentMap['nomEleve']?.toString() ?? '';
 
-        final firstName = studentMap['eleve_prenomfr']?.toString() ?? '';
-        final lastName = studentMap['eleve_nomfr']?.toString() ?? '';
-        final fullName = [firstName, lastName]
-            .where((value) => value.isNotEmpty)
-            .join(' ')
-            .trim();
+      final className =
+          studentMap['classe']?.toString() ?? '';
 
-        students.add({
-          'id': studentMap['eleve_id'],
-          'fullName': fullName,
-          'firstName': firstName,
-          'lastName': lastName,
-          'className': className,
-          'classId': classId.toString(),
-          'parentNames': parentNames.join(' '),
-          'raw': studentMap,
-        });
-      }
+      final fullName = [
+        firstName,
+        lastName,
+      ]
+          .where((value) => value.isNotEmpty)
+          .join(' ')
+          .trim();
+
+      students.add({
+        'id': studentMap['eleveId'],
+        'fullName': fullName,
+        'firstName': firstName,
+        'lastName': lastName,
+        'parentNames': parents,
+        'parentId': parentId,
+        'className': className,
+        'raw': studentMap,
+      });
     }
+
   } catch (e) {
     debugPrint('Error fetching students for search: $e');
     return [];
   }
 
+  
+
   return students;
 }
-
 Future<void>updatedisponibility(int idDisponibilite, String debut, String fin, String jour) async {
   final baseUrl = _baseUrl;
 

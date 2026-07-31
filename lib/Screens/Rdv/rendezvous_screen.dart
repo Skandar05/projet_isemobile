@@ -148,6 +148,22 @@ class _RendezVousPageState extends State<RendezVousPage> {
     return '';
   }
 
+  String _resolveTeacherOrPedagogiqueName(Map<String, dynamic> rdv) {
+    final teacherFirst = _extractText(rdv, ['enseignantPrenomfr', 'prenomEnseignant', 'prenom']);
+    final teacherLast = _extractText(rdv, ['enseignantNomfr', 'nomEnseignant', 'nom', 'enseignant']);
+    final teacherFull = ('$teacherLast $teacherFirst').trim();
+
+    final pedagogiqueFirst = _extractText(rdv, ['pedagogiquePrenomfr', 'prenomPedagogique', 'prenom']);
+    final pedagogiqueLast = _extractText(rdv, ['pedagogiqueNomfr', 'nomPedagogique', 'nom']);
+    final pedagogiqueFull = ('$pedagogiqueLast $pedagogiqueFirst').trim();
+
+    if (teacherFull.isNotEmpty) {
+      return teacherFull;
+    }
+
+    return pedagogiqueFull.isNotEmpty ? pedagogiqueFull : teacherFull;
+  }
+
   String _contactName(Map<String, dynamic> rdv) {
     final teacherName =
         ('${rdv['enseignantNomfr'] ?? rdv['nomEnseignant'] ?? rdv['enseignant'] ?? ''}'
@@ -162,7 +178,8 @@ class _RendezVousPageState extends State<RendezVousPage> {
       return parentName.isEmpty ? 'Parent' : parentName;
     }
 
-    return teacherName.isEmpty ? 'Enseignant' : teacherName;
+    final resolvedTeacherName = _resolveTeacherOrPedagogiqueName(rdv);
+    return resolvedTeacherName.isEmpty ? 'Enseignant' : resolvedTeacherName;
   }
 
   String _senderName(Map<String, dynamic> rdv) {
@@ -175,6 +192,13 @@ class _RendezVousPageState extends State<RendezVousPage> {
       final full = ('$last $first').trim();
       if (full.isNotEmpty) return full;
       return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'contactName', 'nom_contact', 'nomContact']);
+    } else if (demandeurRole.contains('pedagogique')) {
+      // Parent initiated: sender is parent
+      final first = _extractText(rdv, ['pedagogiquePrenomfr']);
+      final last = _extractText(rdv, ['pedagogiqueNomfr']);
+      final full = ('$last $first').trim();
+      if (full.isNotEmpty) return full;
+      return _extractText(rdv, ['pedagogiquePrenomfr', 'pedagogiqueNomfr']);
     } else {
       // Teacher initiated: sender is teacher
       final first = _extractText(rdv, ['enseignantPrenomfr', 'prenomEnseignant', 'prenom']);
@@ -189,13 +213,17 @@ class _RendezVousPageState extends State<RendezVousPage> {
     final demandeurRole = (rdv['demandeur_role'] ?? '').toString().toLowerCase();
     
     if (demandeurRole.contains('parent')) {
-      // Parent initiated: receiver is teacher
-      final first = _extractText(rdv, ['enseignantPrenomfr', 'prenomEnseignant', 'prenom']);
-      final last = _extractText(rdv, ['enseignantNomfr', 'nomEnseignant', 'nom', 'enseignant']);
+      // Parent initiated: receiver is teacher or pedagogique
+      final resolvedName = _resolveTeacherOrPedagogiqueName(rdv);
+      if (resolvedName.isNotEmpty) return resolvedName;
+      return _extractText(rdv, ['nomEnseignant', 'enseignant']);
+    } else if (demandeurRole.contains('pedagogique')) {
+      final first = _extractText(rdv, ['pedagogiquePrenomfr']);
+      final last = _extractText(rdv, ['pedagogiqueNomfr']);
       final full = ('$last $first').trim();
       if (full.isNotEmpty) return full;
-      return _extractText(rdv, ['nomEnseignant', 'enseignant']);
-    } else {
+      return _extractText(rdv, ['pedagogiquePrenomfr', 'pedagogiqueNomfr']);
+    }else {
       // Teacher initiated: receiver is parent
       final first = _extractText(rdv, ['parentPrenomfr', 'parentPrenom', 'prenomParent', 'prenom']);
       final last = _extractText(rdv, ['parentNomfr', 'parentNom', 'nomParent', 'nom', 'nom_parent']);
@@ -795,6 +823,7 @@ Widget build(BuildContext context) {
 
                               fromName: _senderName(rdv),
                               toName: _receiverName(rdv),
+                              demandeurRole: rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '',
 
                               subject:
                                   (rdv['nomMatiere'] ??

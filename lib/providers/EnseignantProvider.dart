@@ -47,32 +47,6 @@ class EnseignantProvider extends ChangeNotifier {
 
 
 
-  Future<List<dynamic>> GetEleveClass(int IdC) async {
-    List<dynamic> eleves = [];
-
-    try {
-      final response = await _client.get(
-        Uri.parse('$_baseUrl/api/eleves/classe/$IdC'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) {
-          eleves = data;
-        } else {
-          print('Unexpected data format: $data');
-        }
-      } else {
-        print('Failed to load eleves. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error fetching eleves: $e');
-    }
-    return eleves;
-  }
-
-
   Future<Map<String, dynamic>> getElevesEtParentsClasse(int idClasse) async {
     final Map<String, dynamic> result = {
       'eleves': <Map<String, dynamic>>[],
@@ -137,65 +111,7 @@ class EnseignantProvider extends ChangeNotifier {
   }
 
 
-Future<List<dynamic>> GetParentEleve(List<dynamic> eleves) async {
-  List<dynamic> parents = [];
 
-  final futures = eleves.map((eleve) async {
-
-    int id = eleve['id'];
-
-    try {
-      http.Response response = await _client.get(
-        Uri.parse(
-          '$_baseUrl/api/parents-eleve/$id',
-        ),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-
-        List<dynamic> data = jsonDecode(response.body);
-
-        return data.map((item) {
-
-          return {
-            "nomfr": item["Nomfr"],
-            "prenomfr": item["Prenomfr"],
-
-            // student information
-            "eleve_id": eleve["id"],
-            "eleve_nomfr": eleve["Nomfr"],
-            "eleve_prenomfr": eleve["Prenomfr"],
-          };
-
-        }).toList();
-
-      } else {
-        print(
-          "Failed for student $id : ${response.statusCode}"
-        );
-      }
-
-    } catch(e) {
-      print("Error fetching parent for $id : $e");
-    }
-
-    return [];
-  });
-
-
-  // Execute all API calls at the same time
-  final results = await Future.wait(futures);
-
-
-  // Merge all lists
-  for (var result in results) {
-    parents.addAll(result);
-  }
-
-
-  return parents;
-}
 Future<int?> getTeacherinfo(int idPersonne) async {
   if (_teacherPersonneId == idPersonne && _teacherId != null) {
     return _teacherId;
@@ -377,6 +293,38 @@ Future<List<dynamic>> GetAllStudents(int idEnseignant) async {
   }
 
   return students;
+}
+
+Future<int>getResponsable(int ideleve) async {
+  
+  int idResponsable;
+  try{
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/api/eleve/$ideleve/responsable-rendezvous'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      
+      if (data.isNotEmpty) {
+        idResponsable = data['idParent'] ?? 0;
+        return idResponsable;
+      } else {
+        debugPrint('No responsable found for student ID $ideleve');
+        return 0;
+      }
+    } else {
+      debugPrint('Failed to fetch responsable. Status code: ${response.statusCode}');
+      return 0;
+    }
+
+  }catch(e){
+    debugPrint('Error fetching responsable for student ID $ideleve: $e');
+    return 0;
+  }
+
+
 }
 
 

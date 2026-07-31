@@ -8,13 +8,14 @@ class AppointmentCard extends StatelessWidget {
   final String state;
   final String time;
   final Color scolor;
+  final Color? roleColor;
   final String? fromName;
   final String? toName;
+  final String? demandeurRole;
   final VoidCallback? onTap;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
-  final String? pv; // Added pv field
-  
+  final String? pv;
 
   const AppointmentCard({
     super.key,
@@ -25,12 +26,14 @@ class AppointmentCard extends StatelessWidget {
     required this.time,
     required this.state,
     required this.scolor,
+    this.roleColor,
     this.fromName,
     this.toName,
+    this.demandeurRole,
     this.onTap,
     this.onAccept,
     this.onReject,
-    this.pv, // Initialize pv
+    this.pv,
   });
 
   @override
@@ -53,12 +56,15 @@ class AppointmentCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 14,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Avatar
                   Container(
@@ -68,30 +74,43 @@ class AppointmentCard extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Color(0xff123B60),
-                      size: 28,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Builder(builder: (context) {
+                        final role = (demandeurRole ?? '').toString().toLowerCase();
+                        String asset = 'lib/images/pdicon.png';
+                        if (role.contains('enseignant') || role.contains('teacher')) {
+                          asset = 'lib/images/enseignanticon.png';
+                        } else if (role.contains('parent')) {
+                          asset = 'lib/images/parenticon.png';
+                        }
+
+                        return Image.asset(
+                          asset,
+                          width: 52,
+                          height: 52,
+                          fit: BoxFit.cover,
+                        );
+                      }),
                     ),
                   ),
 
                   const SizedBox(width: 16),
 
-                  // Middle content
+                  // Informations
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if ((fromName?.isNotEmpty ?? false) || (toName?.isNotEmpty ?? false)) ...[
+                        if ((fromName?.isNotEmpty ?? false) ||
+                            (toName?.isNotEmpty ?? false)) ...[
                           if (fromName?.isNotEmpty ?? false)
                             Text(
-                              'from ${fromName!}',
+                              "From : ${fromName!}",
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              softWrap: true,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xff334155),
                               ),
@@ -99,12 +118,11 @@ class AppointmentCard extends StatelessWidget {
                           if (toName?.isNotEmpty ?? false) ...[
                             const SizedBox(height: 4),
                             Text(
-                              'to ${toName!}',
+                              "To : ${toName!}",
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              softWrap: true,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xff334155),
                               ),
@@ -112,35 +130,55 @@ class AppointmentCard extends StatelessWidget {
                           ],
                         ] else ...[
                           Text(
-                            "$subject : $duration",
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: true,
+                            subject,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xff123B60),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            duration,
                             style: const TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xff334155),
+                              color: Color(0xff64748B),
                             ),
                           ),
                         ],
 
-                        const SizedBox(height: 6),
+                        if (pv != null && pv!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            pv!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xff475569),
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 10),
 
                         Wrap(
-                          spacing: 10,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 12,
+                          runSpacing: 8,
                           children: [
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.calendar_today,
-                                    size: 16, color: Color(0xff64748B)),
-                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  size: 15,
+                                  color: Color(0xff64748B),
+                                ),
+                                const SizedBox(width: 5),
                                 Text(
                                   date,
                                   style: const TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     color: Color(0xff64748B),
                                   ),
                                 ),
@@ -149,13 +187,16 @@ class AppointmentCard extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.access_time,
-                                    size: 16, color: Color(0xff64748B)),
-                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.access_time,
+                                  size: 15,
+                                  color: Color(0xff64748B),
+                                ),
+                                const SizedBox(width: 5),
                                 Text(
                                   time,
                                   style: const TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     color: Color(0xff64748B),
                                   ),
                                 ),
@@ -166,23 +207,51 @@ class AppointmentCard extends StatelessWidget {
                       ],
                     ),
                   ),
+
+                  const SizedBox(width: 10),
+
+                  // Badge état
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scolor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      state,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
+
               if (onAccept != null || onReject != null) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 18),
                 Row(
                   children: [
                     if (onAccept != null)
                       Expanded(
                         child: SizedBox(
-                          height: 38,
+                          height: 40,
                           child: OutlinedButton.icon(
                             onPressed: onAccept,
-                            icon: const Icon(Icons.check_circle_outline, size: 18),
-                            label: const Text('Accepter'),
+                            icon: const Icon(
+                              Icons.check_circle_outline,
+                              size: 18,
+                            ),
+                            label: const Text("Accepter"),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.green,
-                              side: const BorderSide(color: Colors.green),
+                              side: const BorderSide(
+                                color: Colors.green,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -195,14 +264,19 @@ class AppointmentCard extends StatelessWidget {
                     if (onReject != null)
                       Expanded(
                         child: SizedBox(
-                          height: 38,
+                          height: 40,
                           child: OutlinedButton.icon(
                             onPressed: onReject,
-                            icon: const Icon(Icons.cancel_outlined, size: 18),
-                            label: const Text('Rejeter'),
+                            icon: const Icon(
+                              Icons.cancel_outlined,
+                              size: 18,
+                            ),
+                            label: const Text("Rejeter"),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red),
+                              side: const BorderSide(
+                                color: Colors.red,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),

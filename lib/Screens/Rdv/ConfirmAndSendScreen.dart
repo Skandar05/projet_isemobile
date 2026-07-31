@@ -80,6 +80,11 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
     super.dispose();
   }
 
+  void _dismissKeyboard() {
+    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,7 +147,8 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                       const SizedBox(height: 10),
 
                       _row("Contact", parentName.isNotEmpty ? parentName : enseignantFullname),
-                      _row("Matière", matiere),
+                      if (widget.isTeacher ==false ) _row("Matière", matiere)else
+  const SizedBox.shrink(),
                       _row("Date", selectedDateDisplay),
                       _row("Créneau", selectedTimeValue),
                     ],
@@ -215,6 +221,8 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                     label: const Text("Envoyer la demande"),
                      onPressed: _canSend
                         ? () async {
+                            _dismissKeyboard();
+
                             final rdvProvider =
                                 Provider.of<RdvProvider>(context,
                                     listen: false);
@@ -268,6 +276,8 @@ class _ConfirmAndSendScreenState extends State<ConfirmAndSendScreen> {
                                 heureFin: _selectedTimeEnd,
                               );
                             }
+
+                            _dismissKeyboard();
 
                             Navigator.push(
                               context,

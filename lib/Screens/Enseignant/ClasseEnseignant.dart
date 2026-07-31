@@ -36,6 +36,11 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
     super.dispose();
   }
 
+  void _dismissKeyboard() {
+    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   Future<void> initData() async {
     final provider = context.read<EnseignantProvider>();
     final prefs = await SharedPreferences.getInstance();
@@ -160,31 +165,42 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
 
 
   Future<void> _selectStudent(Map<String, dynamic> student) async {
-    final prefs = await SharedPreferences.getInstance();
-    final parentsList = student['parents'] as List<Map<String, dynamic>>? ?? [];
-    
-    // Take only the first parent
-    String parentId = '';
-    String parentName = '';
-    if (parentsList.isNotEmpty) {
-      final firstParent = parentsList[0];
-      parentId = firstParent['idpersonne']?.toString() ?? 
-                 firstParent['idPersonne']?.toString() ?? 
-                 firstParent['id_personne']?.toString() ?? '';
-      final parentFirstName = (firstParent['prenomfr'] ?? '').toString().trim();
-      final parentLastName = (firstParent['nomfr'] ?? '').toString().trim();
-      parentName = '$parentLastName $parentFirstName'.trim();
-    }
+    _dismissKeyboard();
 
-    await prefs.setString('rdvFlow', 'teacher');
+    final prefs = await SharedPreferences.getInstance();
+    String parentFirstName ="null" ;
+    String parentLastName ="null" ;
+    String parentNames = "null";
+    final parentsList = student['parents'] as List<Map<String, dynamic>>? ?? [];
+    int studentid = int.tryParse(student['studentId']?.toString() ?? '') ?? 0;
+    
+    int idresponsable = await EnseignantProvider().getResponsable(studentid);
+    final parents = student['parents'] as List;
+  final father = parents.where(
+  (parent) => parent['type'] == 'Père'
+  );
+
+  if (father.isNotEmpty) {
+    parentFirstName = father.first['prenomfr']?.toString() ?? '';
+  }
+  if (father.isNotEmpty) {
+    parentLastName = father.first['nomfr']?.toString() ?? '';
+  }
+  parentNames = '$parentLastName $parentFirstName'.trim();
+    
+   
+    await prefs.setString('rdvFlow', 'teacher'); 
     await prefs.setString('selectedTeacherClassId', student['classId']?.toString() ?? '');
     await prefs.setString('selectedTeacherClassName', student['className']?.toString() ?? '');
     await prefs.setString('selectedTeacherStudentId', student['studentId']?.toString() ?? '');
     await prefs.setString('selectedTeacherStudentName', student['fullName']?.toString() ?? '');
-    await prefs.setString('selectedTeacherParentId', parentId);
-    await prefs.setString('selectedTeacherParentName', parentName);
+    await prefs.setString('selectedTeacherParentId', idresponsable.toString());
+    await prefs.setString('selectedTeacherParentName', parentNames);
+    
 
     if (!mounted) return;
+
+    _dismissKeyboard();
 
     Navigator.push(
       context,

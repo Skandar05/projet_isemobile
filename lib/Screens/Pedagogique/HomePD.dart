@@ -35,8 +35,9 @@ class _HomePedagogiqueBodyState extends State<_HomePedagogiqueBody> {
   Future<void> _loadClasses() async {
     final prefs = await SharedPreferences.getInstance();
     try {
-      final classes = await PdProvider().getAllClasses();
+      final classes = await PdProvider().getAllStudentsForSearch();
       prefs.setString('classes', jsonEncode(classes));
+      debugPrint('test://$classes');
     } catch (e) {
       debugPrint('Failed to load classes: $e');
     }

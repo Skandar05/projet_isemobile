@@ -22,11 +22,43 @@ List<Map<String, dynamic>> filterStudentsByQuery(
         .toString()
         .toLowerCase();
 
+    final parentNames = _extractParentNames(student);
+
     return fullName.contains(normalizedQuery) ||
         className.contains(normalizedQuery) ||
         firstName.contains(normalizedQuery) ||
-        lastName.contains(normalizedQuery);
+        lastName.contains(normalizedQuery) ||
+        parentNames.contains(normalizedQuery);
   }).toList();
+}
+
+String _extractParentNames(Map<String, dynamic> student) {
+  if (student['parentNames'] != null) {
+    return student['parentNames'].toString().toLowerCase();
+  }
+
+  if (student['parents'] != null) {
+    final parents = student['parents'];
+    if (parents is List) {
+      return parents
+          .map((p) => p is Map ? '${p['nomfr'] ?? p['nom'] ?? ''} ${p['prenomfr'] ?? p['prenom'] ?? ''}' : p.toString())
+          .join(' ')
+          .toLowerCase();
+    }
+    return parents.toString().toLowerCase();
+  }
+
+  if (student['raw'] != null && student['raw'] is Map) {
+    final raw = student['raw'] as Map;
+    if (raw['parents'] is List) {
+      return (raw['parents'] as List)
+          .map((p) => p is Map ? '${p['nomfr'] ?? p['nom'] ?? ''} ${p['prenomfr'] ?? p['prenom'] ?? ''}' : p.toString())
+          .join(' ')
+          .toLowerCase();
+    }
+  }
+
+  return '';
 }
 
 List<Map<String, dynamic>> filterClassesByQuery(
@@ -64,9 +96,31 @@ List<Map<String, dynamic>> filterClassesByQuery(
     final idClasse = classe['idclasse']?.toString().toLowerCase() ?? '';
     final idClass = classe['idClasse']?.toString().toLowerCase() ?? '';
 
+    // parent names may be a top-level string or inside raw.parents
+    final parentNames = (classe['parentNames'] ?? classe['parent_names'] ?? '')
+        .toString()
+        .toLowerCase();
+
+    String rawParentsConcat = '';
+    try {
+      final raw = classe['raw'];
+      if (raw is Map && raw['parents'] is List) {
+        final List parents = raw['parents'];
+        rawParentsConcat = parents.map((p) {
+          final nom = (p['nomfr'] ?? p['nom'] ?? '').toString();
+          final prenom = (p['prenomfr'] ?? p['prenom'] ?? '').toString();
+          return ('$nom $prenom').trim();
+        }).where((s) => s.isNotEmpty).join(' ').toLowerCase();
+      }
+    } catch (_) {
+      rawParentsConcat = '';
+    }
+
     return label.contains(normalizedQuery) ||
-        id.contains(normalizedQuery) ||
-        idClasse.contains(normalizedQuery) ||
-        idClass.contains(normalizedQuery);
+      id.contains(normalizedQuery) ||
+      idClasse.contains(normalizedQuery) ||
+      idClass.contains(normalizedQuery) ||
+      parentNames.contains(normalizedQuery) ||
+      rawParentsConcat.contains(normalizedQuery);
   }).toList();
 }

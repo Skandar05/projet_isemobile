@@ -43,6 +43,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   final List<Map<String, String>> availableDates = [];
   final List<Map<String, String>> allDateSlots = [];
   final List<Map<String, String>> filteredDateSlots = [];
+  String nomparent = '';
 
   @override
   void initState() {
@@ -50,8 +51,14 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     loadPrefs();
   }
 
+  void _dismissKeyboard() {
+    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   Future<void> loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+   nomparent = prefs.getString("selectedTeacherParentName") ?? '';
     // Try multiple keys: handle int or string stored values
     String savedId = '';
     final dynamic rawIdEnseignant = prefs.get('idEnseignant');
@@ -487,13 +494,13 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                           CrossAxisAlignment.start,
                       children: [
                         Text(
-                          fullname,
+                          widget.isTeacher ? nomparent : fullname,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          matiere,
+                          widget.isTeacher ? '' : matiere,
                           style: const TextStyle(
                               color: Colors.grey),
                         ),
@@ -711,6 +718,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                   ),
                   onPressed: selectedDayIndex != null && selectedSlotIndex != null
                       ? () async {
+                          _dismissKeyboard();
+
                           final prefs = await SharedPreferences.getInstance();
                           final selectedDate = availableDates[selectedDayIndex!];
                           final selectedSlot = filteredSlots[selectedSlotIndex!];
@@ -724,6 +733,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                           if (!context.mounted) {
                             return;
                           }
+
+                          _dismissKeyboard();
 
                           Navigator.push(
                             context,

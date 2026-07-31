@@ -13,6 +13,7 @@ class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
   int? idPersonne;
+  int? idpd;
   String? token;
   String? role;
 
@@ -74,7 +75,11 @@ class AuthProvider extends ChangeNotifier {
 
       token = jwtToken;
       idPersonne = payload['idpersonne'] as int?;
+      idpd = payload['idpersonne'] as int?;
+      
       final prefs = await SharedPreferences.getInstance();
+
+      await prefs.setString('IdPd', idpd?.toString() ?? '');
 
       await prefs.remove('IdteacherInfo');
       await prefs.setInt('idE', idPersonne ?? 0);
@@ -157,6 +162,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   int? get idE => idPersonne;
+  
 
   /// Renvoie le nom complet formaté (Prénom NOM)
   String get fullName {

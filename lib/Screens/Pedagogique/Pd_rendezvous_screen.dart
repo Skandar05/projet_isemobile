@@ -731,6 +731,7 @@ Widget build(BuildContext context) {
                               tutorName: _contactName(rdv),
                               fromName: _senderName(rdv),
                               toName: _receiverName(rdv),
+                              demandeurRole: rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '',
                               subject: _extractText(
                                 rdv,
                                 [
