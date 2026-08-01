@@ -25,6 +25,42 @@ class AuthProvider extends ChangeNotifier {
 
   final _baseUrl = dotenv.env['BACKEND_URL'];
 
+  static int? resolvePedagogiqueId(
+    Map<String, dynamic> payload, {
+    int? fallback,
+  }) {
+    final candidates = [
+      payload['idpd'],
+      payload['idPd'],
+      payload['idpedagogique'],
+      payload['idPedagogique'],
+      payload['id_pedagogique'],
+      payload['pedagogiqueId'],
+      payload['idpersonne'],
+      payload['idPersonne'],
+      fallback,
+    ];
+
+    for (final value in candidates) {
+      if (value == null) {
+        continue;
+      }
+
+      if (value is int) {
+        return value;
+      }
+
+      if (value is String) {
+        final parsed = int.tryParse(value);
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+    }
+
+    return null;
+  }
+
   Future<String?> login({
     required String identifier,
     required String password,
@@ -75,11 +111,14 @@ class AuthProvider extends ChangeNotifier {
 
       token = jwtToken;
       idPersonne = payload['idpersonne'] as int?;
-      idpd = payload['idpersonne'] as int?;
-      
+      idpd = resolvePedagogiqueId(payload, fallback: idPersonne);
+
       final prefs = await SharedPreferences.getInstance();
 
       await prefs.setString('IdPd', idpd?.toString() ?? '');
+      await prefs.setInt('idpd', idpd ?? 0);
+      await prefs.setInt('idPd', idpd ?? 0);
+      await prefs.setInt('idPersonne', idPersonne ?? 0);
 
       await prefs.remove('IdteacherInfo');
       await prefs.setInt('idE', idPersonne ?? 0);

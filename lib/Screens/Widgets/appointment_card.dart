@@ -12,6 +12,7 @@ class AppointmentCard extends StatelessWidget {
   final String? fromName;
   final String? toName;
   final String? demandeurRole;
+  final bool showPdIcon;
   final VoidCallback? onTap;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
@@ -30,6 +31,7 @@ class AppointmentCard extends StatelessWidget {
     this.fromName,
     this.toName,
     this.demandeurRole,
+    this.showPdIcon = false,
     this.onTap,
     this.onAccept,
     this.onReject,
@@ -78,11 +80,19 @@ class AppointmentCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       child: Builder(builder: (context) {
                         final role = (demandeurRole ?? '').toString().toLowerCase();
+                        final isPedagogique = showPdIcon ||
+                            role.contains('pedagogique') ||
+                            role.contains('pd') ||
+                            (fromName ?? '').toLowerCase().contains('pedagogique') ||
+                            (toName ?? '').toLowerCase().contains('pedagogique');
+
                         String asset = 'lib/images/pdicon.png';
-                        if (role.contains('enseignant') || role.contains('teacher')) {
-                          asset = 'lib/images/enseignanticon.png';
-                        } else if (role.contains('parent')) {
-                          asset = 'lib/images/parenticon.png';
+                        if (!isPedagogique) {
+                          if (role.contains('enseignant') || role.contains('teacher')) {
+                            asset = 'lib/images/enseignanticon.png';
+                          } else if (role.contains('parent')) {
+                            asset = 'lib/images/parenticon.png';
+                          }
                         }
 
                         return Image.asset(

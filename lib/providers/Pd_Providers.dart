@@ -133,7 +133,7 @@ Future<List<Map<String, dynamic>>> getAllDisponibilites(int idPedagogique) async
   }
 
   final decoded = jsonDecode(response.body);
-
+  debugPrint('Fetched ${decoded} disponibilites for pedagogique $idPedagogique');
   if (decoded is! List) {
     throw Exception('Unexpected response format');
   }
@@ -249,7 +249,7 @@ Future<List<Map<String, dynamic>>> getAllStudentsForSearch() async {
           .where((value) => value.isNotEmpty)
           .join(' ')
           .trim();
-
+      debugPrint('Adding student: $fullName, Class: $className, Parent: $parentId');
       students.add({
         'id': studentMap['eleveId'],
         'fullName': fullName,

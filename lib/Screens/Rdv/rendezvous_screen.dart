@@ -233,6 +233,17 @@ class _RendezVousPageState extends State<RendezVousPage> {
     }
   }
 
+  bool _isPedagogiqueRdv(Map<String, dynamic> rdv) {
+    final role = (rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '').toString().toLowerCase();
+    if (role.contains('pedagogique')) {
+      return true;
+    }
+
+    final sender = _senderName(rdv).toLowerCase();
+    final receiver = _receiverName(rdv).toLowerCase();
+    return sender.contains('pedagogique') || receiver.contains('pedagogique');
+  }
+
   bool _canPerformAction(Map<String, dynamic> rdv) {
     final demandeurRole = (rdv['demandeur_role'] ?? '').toString().toLowerCase();
     final status = _statusLabel((rdv['statuts'] ?? rdv['status'] ?? '').toString());
@@ -824,6 +835,7 @@ Widget build(BuildContext context) {
                               fromName: _senderName(rdv),
                               toName: _receiverName(rdv),
                               demandeurRole: rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '',
+                              showPdIcon: _isPedagogiqueRdv(rdv),
 
                               subject:
                                   (rdv['nomMatiere'] ??
