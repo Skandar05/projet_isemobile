@@ -417,6 +417,14 @@ Future<void> loadCounts() async {
     return demandeurRole.contains('parent');
   }
 
+  bool _hasPedagogiqueOwner(Map<String, dynamic> rdv) {
+    final pedagogiqueId = rdv['pedagogiqueId'] ?? rdv['idpedagogique'] ?? rdv['pedagogique_id'];
+    final pedagogiqueName = _pedagogiqueName(rdv);
+    final hasPedagogiqueId = pedagogiqueId != null && pedagogiqueId.toString().trim().isNotEmpty;
+    final hasPedagogiqueName = pedagogiqueName.isNotEmpty && pedagogiqueName != 'Pédagogique';
+    return hasPedagogiqueId || hasPedagogiqueName;
+  }
+
   bool _isResolvedRdv(Map<String, dynamic> rdv) {
     final status = resolveRdvStatusLabel(rdv['statuts'] ?? rdv['status'] ?? '');
     return status == 'Acceptés' || status == 'Rejetés';
@@ -542,6 +550,28 @@ Future<void> loadCounts() async {
   }
 
   String _parentName(Map<String, dynamic> rdv) {
+    final firstName = _extractText(rdv, [
+      'parentPrenom',
+      'parentPrenomfr',
+      'prenomParent',
+      'prenom_parent',
+      'firstName',
+      'prenom',
+    ]);
+    final lastName = _extractText(rdv, [
+      'parentNom',
+      'parentNomfr',
+      'nomParent',
+      'nom_parent',
+      'lastName',
+      'nom',
+    ]);
+
+    final fullName = [firstName, lastName].where((value) => value.isNotEmpty).join(' ').trim();
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+
     return _extractText(rdv, [
       'parentNomfr',
       'parentPrenomfr',
@@ -555,6 +585,28 @@ Future<void> loadCounts() async {
   }
 
   String _pedagogiqueName(Map<String, dynamic> rdv) {
+    final firstName = _extractText(rdv, [
+      'pedagogiquePrenom',
+      'pedagogiquePrenomfr',
+      'prenomPedagogique',
+      'prenom_pedagogique',
+      'firstName',
+      'prenom',
+    ]);
+    final lastName = _extractText(rdv, [
+      'pedagogiqueNom',
+      'pedagogiqueNomfr',
+      'nomPedagogique',
+      'nom_pedagogique',
+      'lastName',
+      'nom',
+    ]);
+
+    final fullName = [firstName, lastName].where((value) => value.isNotEmpty).join(' ').trim();
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+
     final name = _extractText(rdv, [
       'nom_pedagogique',
       'nomPedagogique',
@@ -1019,6 +1071,7 @@ Widget build(BuildContext context) {
                           itemBuilder: (context, index) {
                             final rdv = _visibleRdvsForCurrentSelection()[index];
                             final isParent = _isParentRequest(rdv);
+                            final hasPedagogiqueOwner = _hasPedagogiqueOwner(rdv);
                             final isResolved = _isResolvedRdv(rdv);
                             final displaySubject = _displaySubject(rdv);
                             final displayDate = _displayDate(rdv);
@@ -1051,8 +1104,8 @@ Widget build(BuildContext context) {
                               scolor: _statusColor(rdv['statuts'] ?? rdv['status'] ?? ''),
                               state: displayState,
                               onTap: () => _showRdvDetails(context, rdv),
-                              onAccept: isParent && !isResolved ? () => _handleAcceptRdv(rdv) : null,
-                              onReject: isParent && !isResolved ? () => _handleRejectRdv(rdv) : null,
+                              onAccept: isParent && hasPedagogiqueOwner && !isResolved ? () => _handleAcceptRdv(rdv) : null,
+                              onReject: isParent && hasPedagogiqueOwner && !isResolved ? () => _handleRejectRdv(rdv) : null,
                               pv: _extractText(
                                 rdv,
                                 [
