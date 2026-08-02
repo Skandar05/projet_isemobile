@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Pedagogique/ClassLevelsPage.dart';
@@ -95,16 +96,73 @@ class _Pd_rendezvous_screenState extends State<Pd_rendezvous_screen> {
   String _isselected = 'Pedagogique';
   String _selectedFilter = 'Tous';
   final List<String> _statusFilters = ['Tous', 'En attente', 'Acceptés', 'Rejetés'];
-
+  List<Map<String, dynamic>> RdvPD = [];
 
   Map<String, String> rdvCounts = {};
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAllRoleData());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitialData());
     loadCounts();
   }
+
+Future<List<Map<String, dynamic>>> GetPdRdv() async {
+  final preferences = await SharedPreferences.getInstance();
+  final idPd = preferences.getInt('idPd') ?? 0;
+  final pdProvider = context.read<PdProvider>();
+  RdvPD = await pdProvider.GetPdRdv(idPd);
+  return RdvPD;
+}
+
+Future<void> _loadInitialData() async {
+  await _loadPedagogiqueRdvs();
+  if (!mounted) return;
+  await _loadAllRoleData();
+}
+
+Future<void> _loadPedagogiqueRdvs() async {
+  if (!mounted) return;
+
+  setState(() => _isLoading = true);
+
+  try {
+    final loadedRdvs = await GetPdRdv();
+
+    if (!mounted) return;
+
+    setState(() {
+      RdvPD = normalizeRdvs(loadedRdvs);
+      RdvPD.sort((a, b) {
+        final idA = a['id'] ?? a['idRdv'] ?? a['id_rdv'];
+        final idB = b['id'] ?? b['idRdv'] ?? b['id_rdv'];
+
+        if (idA is num && idB is num) {
+          return idB.compareTo(idA);
+        }
+
+        if (idA != null && idB != null) {
+          return idB.toString().compareTo(idA.toString());
+        }
+
+        return 0;
+      });
+
+      _rdvsByRole['Pedagogique'] = List<Map<String, dynamic>>.from(RdvPD);
+
+      if (_isselected == 'Pedagogique') {
+        _rdvs.clear();
+        _rdvs.addAll(RdvPD);
+      }
+    });
+  } catch (e) {
+    debugPrint('Error loading pedagogique rendezvous: $e');
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+}
 
 Future<void> loadCounts() async {
   final Map<String, String> counts = await PdProvider().getPvCount();
@@ -128,25 +186,30 @@ Future<void> loadCounts() async {
         pdProvider = PdProvider();
       }
 
-      final roles = ['Pedagogique', 'parent', 'enseignant'];
+      final roleData = <String, List<Map<String, dynamic>>>{};
+      roleData['Pedagogique'] = List<Map<String, dynamic>>.from(RdvPD);
+
+      final roles = ['parent', 'enseignant'];
       final results = await Future.wait(roles.map((role) async {
         final rdvs = await pdProvider.getAllRdv(role);
         return MapEntry(role, normalizeRdvs(rdvs));
       }));
 
-      if (!mounted) return;
-
-      final roleData = <String, List<Map<String, dynamic>>>{};
       for (final entry in results) {
         roleData[entry.key] = entry.value;
       }
+
+      if (!mounted) return;
 
       setState(() {
         _rdvsByRole.clear();
         _rdvsByRole.addAll(roleData);
 
+        final selectedRole = _isselected == 'Pedagogique' ? 'Pedagogique' : _isselected;
+        final selectedItems = _rdvsByRole[selectedRole] ?? <Map<String, dynamic>>[];
+
         _rdvs.clear();
-        _rdvs.addAll(_rdvsByRole[_isselected] ?? <Map<String, dynamic>>[]);
+        _rdvs.addAll(selectedItems);
       });
     } catch (e) {
       debugPrint('Error loading rendezvous by role: $e');
@@ -266,6 +329,140 @@ Future<void> loadCounts() async {
     return '';
   }
 
+  String _displaySubject(Map<String, dynamic> rdv) {
+    final subject = _extractText(rdv, [
+      'nomMatiere',
+      'matiere',
+      'sujet',
+      'motif',
+      'objet',
+      'titre',
+    ]);
+    if (subject.isNotEmpty) {
+      return subject;
+    }
+
+    return _extractText(rdv, ['jour', 'date', 'dateRdv', 'jourRdv']);
+  }
+
+  String _displayDate(Map<String, dynamic> rdv) {
+    return _extractText(rdv, ['date', 'jour', 'dateRdv', 'jourRdv']);
+  }
+
+  DateTime? _extractDateValue(Map<String, dynamic> rdv) {
+    final rawDate = _extractText(rdv, ['date', 'dateRdv', 'jour', 'jourRdv']);
+    if (rawDate.isEmpty) {
+      return null;
+    }
+
+    final datePart = rawDate.split(' ').first;
+    return DateTime.tryParse(datePart);
+  }
+
+  int? _extractTimeValue(Map<String, dynamic> rdv) {
+    final start = _extractText(rdv, [
+      'heureDebut',
+      'heure_debut',
+      'heuredebut',
+      'debut',
+      'startTime',
+    ]);
+
+    if (start.isEmpty) {
+      return null;
+    }
+
+    final parts = start.split(':');
+    if (parts.length < 2) {
+      return null;
+    }
+
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) {
+      return null;
+    }
+
+    return hour * 60 + minute;
+  }
+
+  String _displayTime(Map<String, dynamic> rdv) {
+    final start = _extractText(rdv, [
+      'heureDebut',
+      'heure_debut',
+      'heuredebut',
+      'debut',
+      'startTime',
+    ]);
+    final end = _extractText(rdv, [
+      'heureFin',
+      'heure_fin',
+      'heurefin',
+      'fin',
+      'endTime',
+    ]);
+
+    if (start.isEmpty && end.isEmpty) {
+      return 'Heure à confirmer';
+    }
+
+    return '$start - $end'.trim();
+  }
+
+  bool _isParentRequest(Map<String, dynamic> rdv) {
+    final demandeurRole = (rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '')
+        .toString()
+        .toLowerCase();
+    return demandeurRole.contains('parent');
+  }
+
+  bool _matchRdvId(Map<String, dynamic> item, Object? targetId) {
+    final currentId = item['id'] ?? item['idRdv'] ?? item['id_rdv'];
+    return currentId == targetId;
+  }
+
+  void _updateRdvStatus(Map<String, dynamic> rdv, String status) {
+    final targetId = rdv['id'] ?? rdv['idRdv'] ?? rdv['id_rdv'];
+    if (targetId == null) {
+      return;
+    }
+
+    setState(() {
+      for (final entry in _rdvsByRole.entries) {
+        final index = entry.value.indexWhere((item) => _matchRdvId(item, targetId));
+        if (index != -1) {
+          entry.value[index]['statuts'] = status;
+        }
+      }
+
+      final currentIndex = _rdvs.indexWhere((item) => _matchRdvId(item, targetId));
+      if (currentIndex != -1) {
+        _rdvs[currentIndex]['statuts'] = status;
+      }
+
+      final pedagogiqueIndex = RdvPD.indexWhere((item) => _matchRdvId(item, targetId));
+      if (pedagogiqueIndex != -1) {
+        RdvPD[pedagogiqueIndex]['statuts'] = status;
+      }
+    });
+  }
+
+  Future<void> _handleAcceptRdv(Map<String, dynamic> rdv) async {
+    _updateRdvStatus(rdv, 'accepté');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Demande acceptée.')),
+    );
+  }
+
+  Future<void> _handleRejectRdv(Map<String, dynamic> rdv) async {
+    _updateRdvStatus(rdv, 'refusé');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Demande refusée.')),
+    );
+  }
+
   String _contactName(Map<String, dynamic> rdv) {
     final directContact = _extractText(rdv, [
       'nom_parent',
@@ -310,31 +507,95 @@ Future<void> loadCounts() async {
     return displayName.isEmpty ? 'Nom non renseigné' : displayName;
   }
 
+  String _parentName(Map<String, dynamic> rdv) {
+    return _extractText(rdv, [
+      'parentNomfr',
+      'parentPrenomfr',
+      'nomParent',
+      'nom_parent',
+      'contactName',
+      'nom_contact',
+      'nomContact',
+      'parent',
+    ]);
+  }
+
+  String _pedagogiqueName(Map<String, dynamic> rdv) {
+    final name = _extractText(rdv, [
+      'nom_pedagogique',
+      'nomPedagogique',
+      'nom_pc',
+      'nomPC',
+      'pedagogique',
+      'pedagogiquePrenomfr',
+      'pedagogiqueNomfr',
+      'prenomPedagogique',
+    ]);
+    return name.isNotEmpty ? name : 'Pédagogique';
+  }
+
+  String _teacherName(Map<String, dynamic> rdv) {
+    return _extractText(rdv, [
+      'nom_enseignant',
+      'nomEnseignant',
+      'nomTeacher',
+      'enseignantNomfr',
+      'enseignantPrenomfr',
+      'enseignant',
+    ]);
+  }
+
   String _senderName(Map<String, dynamic> rdv) {
-    switch (_isselected) {
-      case 'parent':
-        return _extractText(rdv, ['parentNomfr', 'parentPrenomfr', 'nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
-      case 'enseignant':
-        return _extractText(rdv, ['nom_enseignant', 'nomEnseignant', 'nomTeacher']);
-      case 'Pedagogique':
-      default:
-        return _extractText(rdv, ['nom_pedagogique', 'nomPedagogique', 'nom_pc', 'nomPC', 'pedagogique'])
-            .isNotEmpty
-            ? _extractText(rdv, ['nom_pedagogique', 'nomPedagogique', 'nom_pc', 'nomPC', 'pedagogique'])
-            : 'Pédagogique';
+    final demandeurRole =
+        (rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '')
+            .toString()
+            .toLowerCase();
+
+    if (demandeurRole.contains('parent')) {
+      return _parentName(rdv);
     }
+    if (demandeurRole.contains('pedagogique')) {
+      return _pedagogiqueName(rdv);
+    }
+    if (demandeurRole.contains('enseignant') ||
+        demandeurRole.contains('teacher')) {
+      return _teacherName(rdv);
+    }
+
+    final parent = _parentName(rdv);
+    if (parent.isNotEmpty) return parent;
+    final pedagogique = _pedagogiqueName(rdv);
+    if (pedagogique.isNotEmpty) return pedagogique;
+    return _teacherName(rdv);
   }
 
   String _receiverName(Map<String, dynamic> rdv) {
-    switch (_isselected) {
-      case 'parent':
-        return _extractText(rdv, ['nom_enseignant', 'nomEnseignant', 'nomTeacher', 'nom_pedagogique', 'nomPedagogique', 'nom_pc', 'nomPC', 'pedagogique']);
-      case 'enseignant':
-        return _extractText(rdv, ['nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact']);
-      case 'Pedagogique':
-      default:
-        return _extractText(rdv, ['nom_parent', 'nomParent', 'contactName', 'nom_contact', 'nomContact', 'nom_enseignant', 'nomEnseignant', 'nomTeacher']);
+    final demandeurRole =
+        (rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '')
+            .toString()
+            .toLowerCase();
+
+    if (demandeurRole.contains('parent')) {
+      final pedagogique = _pedagogiqueName(rdv);
+      if (pedagogique.isNotEmpty && pedagogique != 'Pédagogique') {
+        return pedagogique;
+      }
+      final teacher = _teacherName(rdv);
+      return teacher.isNotEmpty ? teacher : 'Pédagogique';
     }
+    if (demandeurRole.contains('pedagogique')) {
+      final parent = _parentName(rdv);
+      return parent.isNotEmpty ? parent : 'Parent';
+    }
+    if (demandeurRole.contains('enseignant') ||
+        demandeurRole.contains('teacher')) {
+      final parent = _parentName(rdv);
+      return parent.isNotEmpty ? parent : 'Parent';
+    }
+
+    final parent = _parentName(rdv);
+    if (parent.isNotEmpty) return parent;
+    return _teacherName(rdv);
   }
 
   void _showRdvDetails(BuildContext context, Map<String, dynamic> rdv) {
@@ -573,8 +834,7 @@ Widget build(BuildContext context) {
                         _isselected = 'Pedagogique';
                         _rdvs.clear();
                         _rdvs.addAll(
-                          _rdvsByRole['Pedagogique'] ??
-                              <Map<String, dynamic>>[],
+                          RdvPD
                         );
                       });
                     },
@@ -723,45 +983,47 @@ Widget build(BuildContext context) {
                               _visibleRdvsForCurrentSelection().length,
 
                           itemBuilder: (context, index) {
-
-                            final rdv =
-                                _visibleRdvsForCurrentSelection()[index];
+                            final rdv = _visibleRdvsForCurrentSelection()[index];
+                            final isParent = _isParentRequest(rdv);
+                            final displaySubject = _displaySubject(rdv);
+                            final displayDate = _displayDate(rdv);
+                            final displayTime = _displayTime(rdv);
+                            final displayState = _statusLabel(rdv['statuts'] ?? rdv['status'] ?? '');
+                            final startTime = _extractText(rdv, [
+                              'heureDebut',
+                              'heure_debut',
+                              'heuredebut',
+                              'debut',
+                              'startTime',
+                            ]);
+                            final endTime = _extractText(rdv, [
+                              'heureFin',
+                              'heure_fin',
+                              'heurefin',
+                              'fin',
+                              'endTime',
+                            ]);
 
                             return AppointmentCard(
                               tutorName: _contactName(rdv),
                               fromName: _senderName(rdv),
                               toName: _receiverName(rdv),
                               demandeurRole: rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '',
-                              subject: _extractText(
-                                rdv,
-                                [
-                                  'nomMatiere',
-                                  'matiere',
-                                  'sujet',
-                                  'motif',
-                                  'objet',
-                                  'titre'
-                                ],
-                              ),
-                              duration: _formatDuration(
-                                rdv['heureDebut'],
-                                rdv['heureFin'],
-                              ),
-                              date: rdv['date'] ?? 'Date à confirmer',
-                              time:
-                                  '${rdv['heureDebut']} - ${rdv['heureFin']}',
-                              scolor:
-                                  _statusColor(rdv['statuts']),
-                              state:
-                                  _statusLabel(rdv['statuts']),
-                              onTap: () =>
-                                  _showRdvDetails(context, rdv),
+                              subject: displaySubject,
+                              duration: _formatDuration(startTime, endTime),
+                              date: displayDate.isNotEmpty ? displayDate : 'Date à confirmer',
+                              time: displayTime,
+                              scolor: _statusColor(rdv['statuts'] ?? rdv['status'] ?? ''),
+                              state: displayState,
+                              onTap: () => _showRdvDetails(context, rdv),
+                              onAccept: isParent ? () => _handleAcceptRdv(rdv) : null,
+                              onReject: isParent ? () => _handleRejectRdv(rdv) : null,
                               pv: _extractText(
                                 rdv,
                                 [
                                   'pv',
                                   'pvRdv',
-                                  'pvRendezvous'
+                                  'pvRendezvous',
                                 ],
                               ),
                             );

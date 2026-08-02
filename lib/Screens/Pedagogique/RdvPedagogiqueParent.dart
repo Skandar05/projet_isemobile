@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test/Screens/Pedagogique/HomePD.dart';
+import 'package:test/Screens/Pedagogique/Pd_rendezvous_screen.dart';
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import 'package:test/Screens/parent/home_Parent.dart';
 import 'package:test/Screens/Enseignant/student_search_utils.dart';
@@ -101,6 +103,12 @@ class _RdvPdParentState extends State<RdvPdParent> {
         _searchController.text
       );
 
+    });
+
+    _motifController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
     });
 
 
@@ -1064,6 +1072,15 @@ class _RdvPdParentState extends State<RdvPdParent> {
     });
   }
 
+  bool get _isRdvFormComplete {
+    final hasValidParent = (_selectedParentId ?? 0) > 0;
+    return _selectedStudent != null &&
+        hasValidParent &&
+        _selectedDayIndex != null &&
+        _selectedSlotIndex != null &&
+        _motifController.text.trim().isNotEmpty;
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1071,7 +1088,7 @@ class _RdvPdParentState extends State<RdvPdParent> {
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xffF5F7FB),
       appBar: CustomAppBar(
-        interfacePage: HomeParent(),
+        interfacePage: HomePD(),
         title: 'Rendez-vous pédagogique',
         subtitle: 'Créer un rendez-vous avec un élève',
         showBackButton: true,
@@ -1131,16 +1148,8 @@ class _RdvPdParentState extends State<RdvPdParent> {
                     },
                   ),
                 )
-              else if (_searchController.text.trim().isNotEmpty && !_loadingStudents)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: const Text('Aucun élève trouvé.'),
-                ),
+              else if (_searchController.text.trim().isNotEmpty)
+                
               if (_selectedStudent != null) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -1333,11 +1342,11 @@ class _RdvPdParentState extends State<RdvPdParent> {
                   icon: const Icon(Icons.calendar_month),
                   label: const Text('Créer un rendez-vous', style: TextStyle(fontSize: 16)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedStudent != null && _extractParentIdFromStudent(_selectedStudent!) != null && _selectedDayIndex != null && _selectedSlotIndex != null && _motifController.text.trim().isNotEmpty ? primary : Colors.grey,
+                    backgroundColor: _isRdvFormComplete ? primary : Colors.grey,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                   ),
-                  onPressed: _selectedStudent != null && _extractParentIdFromStudent(_selectedStudent!) != null && _selectedDayIndex != null && _selectedSlotIndex != null && _motifController.text.trim().isNotEmpty ? _createRdv : null,
+                  onPressed: _isRdvFormComplete ? _createRdv : null,
                 ),
               ),
             ],
@@ -1350,7 +1359,7 @@ class _RdvPdParentState extends State<RdvPdParent> {
   Future<void> _createRdv() async {
 
 
-  final selectedStudentParentId = parentId; // Assuming you have a variable that holds the selected student's parent ID
+  final selectedStudentParentId = _selectedParentId ?? parentId;
       debugPrint("Selected Student Parent ID: $selectedStudentParentId");
 
  
@@ -1420,6 +1429,27 @@ class _RdvPdParentState extends State<RdvPdParent> {
   final slot =
   _filteredSlots[_selectedSlotIndex!];
 
+
+
+
+  if((selectedStudentParentId ?? 0) <= 0){
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+
+      const SnackBar(
+        content:
+        Text(
+          "Veuillez sélectionner un élève valide."
+        ),
+      ),
+
+    );
+
+
+    return;
+
+  }
 
 
 
@@ -1519,8 +1549,12 @@ motif=$motif
 
 
     });
-
-
+    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Pd_rendezvous_screen(),
+                      ),
+                    );
 
   }
 

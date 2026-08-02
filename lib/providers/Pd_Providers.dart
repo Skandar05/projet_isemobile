@@ -320,4 +320,44 @@ Future<void> deletedisponibility(int idDisponibilite) async {
 
 }
 
+Future<List<Map<String, dynamic>>> GetPdRdv(int IdPd) async {
+  List<Map<String, dynamic>> rdvs = [];
+  final baseUrl = _baseUrl;
+  if (baseUrl == null || baseUrl.isEmpty) {
+    throw Exception('BACKEND_URL is not configured');
+  }
+  if (IdPd == 0) {
+    print('Invalid IdPd: $IdPd');
+    return rdvs;
+  }
+  try {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/GetRendezVousByPedagogique/$IdPd'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load rendezvous for pedagogique $IdPd (${response.statusCode})',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded is! List) {
+      throw Exception('Unexpected response format for pedagogique $IdPd');
+    }
+
+    rdvs = List<Map<String, dynamic>>.from(decoded);
+    debugPrint('Fetched ${rdvs} rendezvous for pedagogique $IdPd');
+  } catch (e) {
+    debugPrint('Error fetching rendezvous for pedagogique $IdPd: $e');
+  }
+
+
+return rdvs;
+}
+
 }

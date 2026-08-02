@@ -218,12 +218,13 @@ class _RendezVousPageState extends State<RendezVousPage> {
       if (resolvedName.isNotEmpty) return resolvedName;
       return _extractText(rdv, ['nomEnseignant', 'enseignant']);
     } else if (demandeurRole.contains('pedagogique')) {
-      final first = _extractText(rdv, ['pedagogiquePrenomfr']);
-      final last = _extractText(rdv, ['pedagogiqueNomfr']);
+      // Pedagogique initiated: receiver is parent
+      final first = _extractText(rdv, ['parentPrenomfr', 'parentPrenom', 'prenomParent', 'prenom']);
+      final last = _extractText(rdv, ['parentNomfr', 'parentNom', 'nomParent', 'nom', 'nom_parent']);
       final full = ('$last $first').trim();
       if (full.isNotEmpty) return full;
-      return _extractText(rdv, ['pedagogiquePrenomfr', 'pedagogiqueNomfr']);
-    }else {
+      return _extractText(rdv, ['nomParent', 'parent', 'nom_parent', 'contactName', 'nom_contact', 'nomContact']);
+    } else {
       // Teacher initiated: receiver is parent
       final first = _extractText(rdv, ['parentPrenomfr', 'parentPrenom', 'prenomParent', 'prenom']);
       final last = _extractText(rdv, ['parentNomfr', 'parentNom', 'nomParent', 'nom', 'nom_parent']);
