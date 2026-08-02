@@ -10,6 +10,7 @@ import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import 'package:test/Screens/parent/home_Parent.dart';
 import 'package:test/providers/Pd_Providers.dart';
+import 'package:test/providers/Rdv_provider.dart';
 
 String resolveRdvStatusLabel(Object? status) {
   final value = status?.toString().toLowerCase() ?? '';
@@ -416,6 +417,11 @@ Future<void> loadCounts() async {
     return demandeurRole.contains('parent');
   }
 
+  bool _isResolvedRdv(Map<String, dynamic> rdv) {
+    final status = resolveRdvStatusLabel(rdv['statuts'] ?? rdv['status'] ?? '');
+    return status == 'Acceptés' || status == 'Rejetés';
+  }
+
   bool _matchRdvId(Map<String, dynamic> item, Object? targetId) {
     final currentId = item['id'] ?? item['idRdv'] ?? item['id_rdv'];
     return currentId == targetId;
@@ -448,19 +454,47 @@ Future<void> loadCounts() async {
   }
 
   Future<void> _handleAcceptRdv(Map<String, dynamic> rdv) async {
-    _updateRdvStatus(rdv, 'accepté');
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Demande acceptée.')),
-    );
+    final targetId = rdv['id'] ?? rdv['idRdv'] ?? rdv['id_rdv'];
+    if (targetId == null) {
+      return;
+    }
+
+    try {
+      final rdvProvider = context.read<RdvProvider>();
+      await rdvProvider.acceptTeacherRDV(int.parse(targetId.toString()));
+      if (!mounted) return;
+      _updateRdvStatus(rdv, 'accepté');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Demande acceptée.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Échec de l\'acceptation : $e')),
+      );
+    }
   }
 
   Future<void> _handleRejectRdv(Map<String, dynamic> rdv) async {
-    _updateRdvStatus(rdv, 'refusé');
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Demande refusée.')),
-    );
+    final targetId = rdv['id'] ?? rdv['idRdv'] ?? rdv['id_rdv'];
+    if (targetId == null) {
+      return;
+    }
+
+    try {
+      final rdvProvider = context.read<RdvProvider>();
+      await rdvProvider.rejectTeacherRDV(int.parse(targetId.toString()));
+      if (!mounted) return;
+      _updateRdvStatus(rdv, 'refusé');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Demande refusée.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Échec du refus : $e')),
+      );
+    }
   }
 
   String _contactName(Map<String, dynamic> rdv) {
@@ -985,6 +1019,7 @@ Widget build(BuildContext context) {
                           itemBuilder: (context, index) {
                             final rdv = _visibleRdvsForCurrentSelection()[index];
                             final isParent = _isParentRequest(rdv);
+                            final isResolved = _isResolvedRdv(rdv);
                             final displaySubject = _displaySubject(rdv);
                             final displayDate = _displayDate(rdv);
                             final displayTime = _displayTime(rdv);
@@ -1016,8 +1051,8 @@ Widget build(BuildContext context) {
                               scolor: _statusColor(rdv['statuts'] ?? rdv['status'] ?? ''),
                               state: displayState,
                               onTap: () => _showRdvDetails(context, rdv),
-                              onAccept: isParent ? () => _handleAcceptRdv(rdv) : null,
-                              onReject: isParent ? () => _handleRejectRdv(rdv) : null,
+                              onAccept: isParent && !isResolved ? () => _handleAcceptRdv(rdv) : null,
+                              onReject: isParent && !isResolved ? () => _handleRejectRdv(rdv) : null,
                               pv: _extractText(
                                 rdv,
                                 [

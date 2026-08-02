@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test/Screens/Rdv/rendezvous_screen.dart';
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import 'package:test/Screens/parent/home_Parent.dart';
 import 'package:test/providers/Pd_Providers.dart';
@@ -1806,6 +1807,14 @@ Widget build(BuildContext context) {
                       motifController.clear();
                       filteredSlots.clear();
                     });
+
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RendezVousPage(),
+                      ),
+                    );
                   } else {
                     messenger.showSnackBar(
                       SnackBar(
