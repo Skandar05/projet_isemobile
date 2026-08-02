@@ -421,7 +421,12 @@ Future<void> createRDV({
     required String role,
     })async{
     int Statecode= 500;
-    final resolvedParentId = await resolveParentId(idParent);
+    
+    int resolvedParentId = await resolveParentId(idParent);
+
+    if (resolvedParentId <= 0) {
+      resolvedParentId =idParent;
+    }
     debugPrint('Response body: Creating RDV for pedagogical $idpd with parent $resolvedParentId on $date from $timeStart to $timeEnd for motif: $motif');
     try {
       final response = await http.post(

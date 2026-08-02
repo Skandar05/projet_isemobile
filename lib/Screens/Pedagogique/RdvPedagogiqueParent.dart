@@ -85,7 +85,8 @@ class _RdvPdParentState extends State<RdvPdParent> {
 
 
   int _selectedWeekOffset = 0;
-int idPd = 0;
+  int idPd = 0;
+  
 
 
   @override
@@ -138,13 +139,7 @@ int idPd = 0;
   Future<void> _loadStoredIdPd() async {
     final prefs = await SharedPreferences.getInstance();
 
-    idPd = int.tryParse(prefs.getString('IdPd') ?? '')
-            ?? prefs.getInt('IdPd')
-            ?? prefs.getInt('idpd')
-            ?? prefs.getInt('idPd')
-            ?? prefs.getInt('idPersonne')
-            ?? prefs.getInt('idE')
-            ?? 0;
+    idPd = prefs.getInt('idPd') ?? 0;
 
     debugPrint("Loaded IdPd from SharedPreferences: $idPd");
   }
@@ -327,26 +322,10 @@ int idPd = 0;
 
 
   int? _extractParentIdFromStudent(Map<String, dynamic> student) {
-    final dynamic pid =
-        student['parentId']
-            ??
-        student['idParent']
-            ??
-        student['id_parent']
-            ??
-        student['parent_id']
-            ??
-        student['id'];
+    final int pid = student['parentId'] ?? 0;
 
-    if (pid is int) {
-      return pid;
-    }
-
-    if (pid is String) {
-      return int.tryParse(pid);
-    }
-
-    return null;
+    debugPrint("Extracted Parent ID from student: $pid");
+    return pid;
   }
 
   // =============================
@@ -1372,7 +1351,7 @@ int idPd = 0;
 
 
   final selectedStudentParentId = parentId; // Assuming you have a variable that holds the selected student's parent ID
-      
+      debugPrint("Selected Student Parent ID: $selectedStudentParentId");
 
  
 
