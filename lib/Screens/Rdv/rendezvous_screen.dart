@@ -256,8 +256,11 @@ class _RendezVousPageState extends State<RendezVousPage> {
       // Teacher can act on parent-initiated requests
       return demandeurRole.contains('parent');
     } else {
-      // Parent can act on teacher-initiated requests
-      return demandeurRole.contains('teacher') || demandeurRole.contains('enseignant');
+      // Parent can act on teacher-initiated and pedagogical requests
+      return demandeurRole.contains('teacher') ||
+          demandeurRole.contains('enseignant') ||
+          demandeurRole.contains('pedagogique') ||
+          demandeurRole.contains('pd');
     }
   }
 
