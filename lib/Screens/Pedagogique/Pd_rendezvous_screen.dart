@@ -22,6 +22,15 @@ String resolveRdvStatusLabel(Object? status) {
   }
   return 'En attente';
 }
+  Future<String> getPdname(int idPd) async {
+    try {
+      final name = await PdProvider().getPedagogiqueName(idPd);
+      return name;
+    } catch (e) {
+      debugPrint('Error fetching pedagogique name for ID $idPd: $e');
+      return 'Unknown Pedagogique';
+    }
+  }
 
 Color resolveRdvStatusColor(Object? status) {
   final value = status?.toString().toLowerCase() ?? '';
@@ -98,6 +107,7 @@ class _Pd_rendezvous_screenState extends State<Pd_rendezvous_screen> {
   String _selectedFilter = 'Tous';
   final List<String> _statusFilters = ['Tous', 'En attente', 'Acceptés', 'Reportés'];
   List<Map<String, dynamic>> RdvPD = [];
+  String namepd = '';
 
   Map<String, String> rdvCounts = {};
 
@@ -113,6 +123,7 @@ Future<List<Map<String, dynamic>>> GetPdRdv() async {
   final idPd = preferences.getInt('idPd') ?? 0;
   final pdProvider = context.read<PdProvider>();
   RdvPD = await pdProvider.GetPdRdv(idPd);
+  namepd = await getPdname(idPd);
   return RdvPD;
 }
 
@@ -126,7 +137,7 @@ Future<void> _loadPedagogiqueRdvs() async {
   if (!mounted) return;
 
   setState(() => _isLoading = true);
-
+  
   try {
     final loadedRdvs = await GetPdRdv();
 
@@ -387,6 +398,7 @@ Future<void> loadCounts() async {
     return hour * 60 + minute;
   }
 
+
   String _displayTime(Map<String, dynamic> rdv) {
     final start = _extractText(rdv, [
       'heureDebut',
@@ -606,18 +618,17 @@ Future<void> loadCounts() async {
     if (fullName.isNotEmpty) {
       return fullName;
     }
-
+    
     final name = _extractText(rdv, [
       'nom_pedagogique',
       'nomPedagogique',
       'nom_pc',
       'nomPC',
-      'pedagogique',
       'pedagogiquePrenomfr',
       'pedagogiqueNomfr',
       'prenomPedagogique',
     ]);
-    return name.isNotEmpty ? name : 'Pédagogique';
+    return name.isNotEmpty ? name : namepd;
   }
 
   String _teacherName(Map<String, dynamic> rdv) {
@@ -1106,14 +1117,7 @@ Widget build(BuildContext context) {
                               onTap: () => _showRdvDetails(context, rdv),
                               onAccept: isParent && hasPedagogiqueOwner && !isResolved ? () => _handleAcceptRdv(rdv) : null,
                               onReject: isParent && hasPedagogiqueOwner && !isResolved ? () => _handleRejectRdv(rdv) : null,
-                              pv: _extractText(
-                                rdv,
-                                [
-                                  'pv',
-                                  'pvRdv',
-                                  'pvRendezvous',
-                                ],
-                              ),
+                              
                             );
                           },
                         ),

@@ -359,5 +359,33 @@ Future<List<Map<String, dynamic>>> GetPdRdv(int IdPd) async {
 
 return rdvs;
 }
+Future<String> getPedagogiqueName(int idPd) async {
+  final baseUrl = _baseUrl;
 
+  if (baseUrl == null || baseUrl.isEmpty) {
+    throw Exception('BACKEND_URL is not configured');
+  }
+
+  try {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/GetPersonnePedagogique/$idPd'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load pedagogique ($idPd) (${response.statusCode})',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+
+    return '${decoded['Nomfr'] ?? ''} ${decoded['Prenomfr'] ?? ''}'.trim();
+  } catch (e) {
+    debugPrint('Error fetching pedagogique name: $e');
+    return 'Unknown Pedagogique';
+  }
+}
 }

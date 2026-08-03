@@ -67,7 +67,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       _buildIconButton(
                         icon: Icons.arrow_back_ios_new_rounded,
                         backgroundColor: Colors.white,
-                        onTap: () => Navigator.pop(context),
+                        onTap: () {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => interfacePage,
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        },
                       ),
 
                     const Spacer(),
