@@ -10,7 +10,6 @@ import 'package:test/Screens/Enseignant/student_search_utils.dart';
 import 'package:test/providers/Pd_Providers.dart';
 import 'package:test/providers/Rdv_provider.dart';
 
-
 class RdvPdParent extends StatefulWidget {
   const RdvPdParent({super.key});
 
@@ -18,91 +17,41 @@ class RdvPdParent extends StatefulWidget {
   State<RdvPdParent> createState() => _RdvPdParentState();
 }
 
-
 class _RdvPdParentState extends State<RdvPdParent> {
-
-
   final Color primary = const Color(0xff1F4B8F);
 
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _motifController = TextEditingController();
 
-  // =============================
-  // STUDENTS SEARCH
-  // =============================
-
-  final TextEditingController _searchController =
-      TextEditingController();
-
-  final TextEditingController _motifController =
-      TextEditingController();
-
-
-  List<Map<String,dynamic>> _students = [];
-
-  List<Map<String,dynamic>> _filteredStudents = [];
-
-
+  List<Map<String, dynamic>> _students = [];
+  List<Map<String, dynamic>> _filteredStudents = [];
   bool _loadingStudents = false;
-
-
-  Map<String,dynamic>? _selectedStudent;
-
-
+  Map<String, dynamic>? _selectedStudent;
   int? _selectedParentId;
 
-
-
-
-  // =============================
-  // DISPONIBILITE
-  // =============================
-
-
   bool _loadingDisponibilite = false;
-
   String? _disponibiliteError;
 
-
   final List<String> _availableDays = [];
+  final List<Map<String, dynamic>> _allSlots = [];
+  final List<Map<String, dynamic>> _filteredSlots = [];
+  final List<Map<String, dynamic>> _availableDates = [];
+  final List<Map<String, dynamic>> _allDateSlots = [];
+  final List<Map<String, dynamic>> _allDateOccurrences = [];
 
-  final List<Map<String,String>> _allSlots = [];
-
-  final List<Map<String,String>> _filteredSlots = [];
-
-  final List<Map<String,String>> _availableDates = [];
-
-  final List<Map<String,String>> _allDateSlots = [];
-
-  final List<Map<String,String>> _allDateOccurrences = [];
   int parentId = 0;
-
-
-  // =============================
-  // DATE SELECTION
-  // =============================
-
-
   int? _selectedDayIndex;
-
   int? _selectedSlotIndex;
-
-
   int _selectedWeekOffset = 0;
   int idPd = 0;
-  
-
+  List<Map<String, dynamic>> data = [];
 
   @override
   void initState() {
-
     super.initState();
 
-
     _searchController.addListener(() {
-
-      _filterStudents(
-        _searchController.text
-      );
-
+      _filterStudents(_searchController.text);
     });
 
     _motifController.addListener(() {
@@ -111,9 +60,7 @@ class _RdvPdParentState extends State<RdvPdParent> {
       }
     });
 
-
     _initializePage();
-
   }
 
   Future<void> _initializePage() async {
@@ -127,869 +74,303 @@ class _RdvPdParentState extends State<RdvPdParent> {
     await _fetchDisponibilite(idPd);
   }
 
-
-
-
-  @override
-  void dispose(){
-
-    _searchController.dispose();
-
-    _motifController.dispose();
-
-    super.dispose();
-
+  Future<List<Map<String, dynamic>>> fetchData(int id) async {
+    data = await PdProvider().GetDispoV2(id);
+    return data;
   }
 
-
-
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _motifController.dispose();
+    super.dispose();
+  }
 
   Future<void> _loadStoredIdPd() async {
     final prefs = await SharedPreferences.getInstance();
-
     idPd = prefs.getInt('idPd') ?? 0;
-
-    debugPrint("Loaded IdPd from SharedPreferences: $idPd");
+    debugPrint('Loaded IdPd from SharedPreferences: $idPd');
   }
-
-  // =============================
-  // LOAD STUDENTS
-  // =============================
-
 
   Future<void> _loadStudents() async {
-
     setState(() {
-
       _loadingStudents = true;
-
     });
-
-
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('students') ?? prefs.getString('classes') ?? prefs.getString('studentsList');
 
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
 
-      final prefs =
-      await SharedPreferences.getInstance();
-
-
-
-      final raw =
-          prefs.getString('students')
-              ??
-          prefs.getString('classes')
-              ??
-          prefs.getString('studentsList');
-
-
-
-      if(raw != null && raw.isNotEmpty){
-
-
-        final decoded =
-        jsonDecode(raw);
-
-
-
-        if(decoded is List){
-
-
-          _students =
-          List<Map<String,dynamic>>.from(
-
-            decoded.map(
-                  (e)=>
-              Map<String,dynamic>.from(e),
-            ),
-
+        if (decoded is List) {
+          _students = List<Map<String, dynamic>>.from(
+            decoded.map((e) => Map<String, dynamic>.from(e)),
           );
-
-
-        }
-
-
-
-        else if(decoded is Map){
-
-
-          if(decoded['students'] is List){
-
-
-            _students =
-            List<Map<String,dynamic>>.from(
-
-              (decoded['students'] as List)
-                  .map(
-                    (e)=>
-                    Map<String,dynamic>.from(e),
-              ),
-
+        } else if (decoded is Map) {
+          if (decoded['students'] is List) {
+            _students = List<Map<String, dynamic>>.from(
+              (decoded['students'] as List).map((e) => Map<String, dynamic>.from(e)),
             );
-
-
-          }
-
-
-          else if(decoded['data'] is List){
-
-
-            _students =
-            List<Map<String,dynamic>>.from(
-
-              (decoded['data'] as List)
-                  .map(
-                    (e)=>
-                    Map<String,dynamic>.from(e),
-              ),
-
+          } else if (decoded['data'] is List) {
+            _students = List<Map<String, dynamic>>.from(
+              (decoded['data'] as List).map((e) => Map<String, dynamic>.from(e)),
             );
-
-
           }
-
-
         }
-
-
       }
-
-
-    }
-    catch(e){
-
-      _students=[];
-
+    } catch (_) {
+      _students = [];
     }
 
-
-
-
-    if(!mounted) return;
-
+    if (!mounted) return;
 
     setState(() {
-
-      _filteredStudents=[];
-
-      _loadingStudents=false;
-
+      _filteredStudents = [];
+      _loadingStudents = false;
     });
-
-
   }
 
-
-
-
-
-  // =============================
-  // SEARCH STUDENT
-  // =============================
-
-
-  void _filterStudents(String query){
-
-
-    if(query.trim().isEmpty){
-
-
+  void _filterStudents(String query) {
+    if (query.trim().isEmpty) {
       setState(() {
-
-        _filteredStudents=[];
-
+        _filteredStudents = [];
       });
-
-
       return;
-
     }
 
-
-
-    final result =
-    filterStudentsByQuery(
-        _students,
-        query
-    );
-
-
+    final result = filterStudentsByQuery(_students, query);
 
     setState(() {
-
-      _filteredStudents=result;
-
+      _filteredStudents = result;
     });
-
-
   }
-
-
-
-
-
 
   int? _extractParentIdFromStudent(Map<String, dynamic> student) {
     final int pid = student['parentId'] ?? 0;
-
-    debugPrint("Extracted Parent ID from student: $pid");
+    debugPrint('Extracted Parent ID from student: $pid');
     return pid;
   }
 
-  // =============================
-  // SELECT STUDENT
-  // =============================
+  Future<void> _selectStudent(Map<String, dynamic> student) async {
+    parentId = _extractParentIdFromStudent(student) ?? 0;
 
-
-  Future<void> _selectStudent(
-      Map<String,dynamic> student
-      ) async {
-
-      parentId =_extractParentIdFromStudent(student) ?? 0;
-    
-
-
-
-
-
-    final name =
-    (
-        student['fullName']
-            ??
-        student['name']
-            ??
-        student['prenomfr']
-            ??
-        student['nomfr']
-            ??
-        ''
+    final name = (
+      student['fullName'] ??
+      student['name'] ??
+      student['prenomfr'] ??
+      student['nomfr'] ??
+      ''
     ).toString();
 
-
-
-
-    final prefs =
-    await SharedPreferences.getInstance();
-
-
-
-    await prefs.setString(
-        'selectedTeacherParentId',
-        parentId.toString()
-    );
-
-
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedTeacherParentId', parentId.toString());
 
     setState(() {
-
-
-      _selectedStudent=student;
-
-
-      _selectedParentId=parentId;
-
-
-      _searchController.text=name;
-
-
-      _filteredStudents=[];
-
-
+      _selectedStudent = student;
+      _selectedParentId = parentId;
+      _searchController.text = name;
+      _filteredStudents = [];
     });
-
-
-
   }
-  // =============================
-  // LOAD DISPONIBILITE USING AUTH IDPD
-  // =============================
 
   Future<void> _fetchDisponibilite(int idpd) async {
-
-
     setState(() {
-
       _loadingDisponibilite = true;
-
       _disponibiliteError = null;
-
-
       _availableDays.clear();
-
       _allSlots.clear();
-
       _filteredSlots.clear();
-
       _availableDates.clear();
-
       _allDateSlots.clear();
-
       _allDateOccurrences.clear();
-
-
       _selectedDayIndex = null;
-
       _selectedSlotIndex = null;
-
-
     });
 
-
-
     try {
-
-
-
-
-      if(idpd <= 0){
-
-        throw Exception(
-          "IdPd introuvable",
-        );
-
+      if (idpd <= 0) {
+        throw Exception('IdPd introuvable');
       }
 
+      debugPrint('Loading disponibilite for IdPd : $idpd');
+      final disponibilites = await fetchData(idpd);
+      debugPrint('Fetched disponibilites: $disponibilites');
 
+      final slotKeys = <String>{};
 
-      debugPrint(
-          "Loading disponibilite for IdPd : $idpd"
-      );
+      for (final item in disponibilites) {
+        final jour = item['jour']?.toString().trim() ?? '';
+        final start = item['start']?.toString().trim() ?? item['heuredebut']?.toString().trim() ?? '';
+        final end = item['end']?.toString().trim() ?? item['heurefin']?.toString().trim() ?? '';
+        final dateValue = item['date']?.toString().trim() ?? item['value']?.toString().trim() ?? '';
+        final isAvailable = item['isAvailable'] is bool
+            ? item['isAvailable'] as bool
+            : item['available'] is bool
+                ? item['available'] as bool
+                : true;
 
-
-
-      final disponibilites =
-      await PdProvider().getAllDisponibilites(idpd);
-      debugPrint("Fetched disponibilites: $disponibilites");
-
-
-
-
-      final slotKeys=<String>{};
-
-
-
-      for(final item in disponibilites){
-
-
-
-        final jour =
-        item['jour']
-            ?.toString()
-            .trim()
-            ??
-            '';
-
-
-
-        final start =
-        item['heuredebut']
-            ?.toString()
-            .trim()
-            ??
-            '';
-
-
-
-        final end =
-        item['heurefin']
-            ?.toString()
-            .trim()
-            ??
-            '';
-
-
-
-        if(jour.isEmpty ||
-            start.isEmpty ||
-            end.isEmpty){
-
+        if (start.isEmpty || end.isEmpty) {
           continue;
-
         }
 
-
-
-        if(!_availableDays.contains(jour)){
-
+        if (jour.isNotEmpty && !_availableDays.contains(jour)) {
           _availableDays.add(jour);
-
         }
 
+        final key = item['id']?.toString() ?? '$dateValue-$start-$end';
 
-
-
-        final slots =
-        _generateSlots(
-            start,
-            end
-        );
-
-
-
-        for(final slot in slots){
-
-
-          final key =
-              "$jour-${slot['start']}-${slot['end']}";
-
-
-
-          if(slotKeys.add(key)){
-
-
-            _allSlots.add({
-
-
-              "jour":jour,
-
-              "start":slot['start']!,
-
-              "end":slot['end']!,
-
-              "time":slot['time']!,
-
-
-            });
-
-
-          }
-
-
+        if (slotKeys.add(key)) {
+          _allSlots.add({
+            'id': item['id'],
+            'jour': jour,
+            'date': dateValue,
+            'start': start,
+            'end': end,
+            'time': item['time']?.toString().trim().isNotEmpty == true
+                ? item['time']!.toString()
+                : '$start - $end',
+            'isAvailable': isAvailable,
+          });
         }
-
-
       }
-
-
 
       _buildCalendarOccurrences();
-
-
-
-    }
-
-    catch(e){
-
-
-      _disponibiliteError=e.toString();
-
-
-    }
-
-
-    finally{
-
-
-      if(!mounted)return;
-
-
+    } catch (e) {
+      _disponibiliteError = e.toString();
+    } finally {
+      if (!mounted) return;
       setState(() {
-
-
-        _loadingDisponibilite=false;
-
-
+        _loadingDisponibilite = false;
       });
-
-
     }
-
-
   }
 
-
-
-
-
-  // =============================
-  // GENERATE 15 MINUTES SLOTS
-  // =============================
-
-
-  List<Map<String,String>> _generateSlots(
-      String start,
-      String end
-      ){
-
-
-
-    final slots =
-    <Map<String,String>>[];
-
-
-
-    final startParts =
-    start.split(':');
-
-
-    final endParts =
-    end.split(':');
-
-
-
-    if(startParts.length < 2 ||
-        endParts.length < 2){
-
-      return slots;
-
-    }
-
-
-
-    final startMinutes =
-        int.parse(startParts[0]) * 60
-            +
-        int.parse(startParts[1]);
-
-
-
-    final endMinutes =
-        int.parse(endParts[0]) * 60
-            +
-        int.parse(endParts[1]);
-
-
-
-
-    for(
-    int current=startMinutes;
-    current + 15 <= endMinutes;
-    current +=15
-    ){
-
-
-      final finish =
-      current+15;
-
-
-
-      final h1 =
-      (current ~/ 60)
-          .toString()
-          .padLeft(2,'0');
-
-
-      final m1 =
-      (current % 60)
-          .toString()
-          .padLeft(2,'0');
-
-
-
-      final h2 =
-      (finish ~/60)
-          .toString()
-          .padLeft(2,'0');
-
-
-
-      final m2 =
-      (finish %60)
-          .toString()
-          .padLeft(2,'0');
-
-
-
-      slots.add({
-
-        "start":"$h1:$m1",
-
-        "end":"$h2:$m2",
-
-        "time":
-        "$h1:$m1 - $h2:$m2"
-
-
-      });
-
-
-    }
-
-
-
-    return slots;
-
-
+  String _formatDateKey(DateTime date) {
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-
-
-
-
-  // =============================
-  // DATE HELPERS
-  // =============================
-
-
-  String _formatDateKey(DateTime date){
-
-    return
-      "${date.year.toString().padLeft(4,'0')}-"
-          "${date.month.toString().padLeft(2,'0')}-"
-          "${date.day.toString().padLeft(2,'0')}";
-
-
+  DateTime _startOfWeek(DateTime date) {
+    return DateTime(date.year, date.month, date.day - (date.weekday - 1));
   }
 
-
-
-  DateTime _startOfWeek(DateTime date){
-
-    return DateTime(
-      date.year,
-      date.month,
-      date.day -
-          (date.weekday-1),
-    );
-
-
+  DateTime _currentWeekStart() {
+    return _startOfWeek(DateTime.now()).add(Duration(days: _selectedWeekOffset * 7));
   }
 
-
-
-
-  DateTime _currentWeekStart(){
-
-    return _startOfWeek(
-        DateTime.now()
-    ).add(
-
-      Duration(
-        days:_selectedWeekOffset*7,
-      ),
-
-    );
-
-
+  String _formatWeekLabel(DateTime date) {
+    final end = date.add(const Duration(days: 6));
+    return 'Semaine du ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} au ${end.day.toString().padLeft(2, '0')}/${end.month.toString().padLeft(2, '0')}';
   }
 
-
-
-
-  String _formatWeekLabel(DateTime date){
-
-    final end =
-    date.add(
-        const Duration(days:6)
-    );
-
-
-    return
-        "Semaine du "
-            "${date.day.toString().padLeft(2,'0')}/"
-            "${date.month.toString().padLeft(2,'0')} "
-            "au "
-            "${end.day.toString().padLeft(2,'0')}/"
-            "${end.month.toString().padLeft(2,'0')}";
-
-
-  }
-
-
-
-
-
-
-  // =============================
-  // BUILD REAL DATES
-  // =============================
-
-
-  void _buildCalendarOccurrences(){
-
-
+  void _buildCalendarOccurrences() {
     _allDateOccurrences.clear();
-
     _allDateSlots.clear();
 
-
-
-    final start =
-    _startOfWeek(
-        DateTime.now()
-    );
-
-
-
-    final end =
-    start.add(
-        const Duration(days:41)
-    );
-
-
-
-    const days={
-
-
-      "lundi":DateTime.monday,
-
-      "mardi":DateTime.tuesday,
-
-      "mercredi":DateTime.wednesday,
-
-      "jeudi":DateTime.thursday,
-
-      "vendredi":DateTime.friday,
-
-      "samedi":DateTime.saturday,
-
-      "dimanche":DateTime.sunday,
-
-
-    };
-
-
-
-    final keys=<String>{};
-
-
-
-    for(final jour in _availableDays){
-
-
-      final weekday =
-      days[jour.toLowerCase()];
-
-
-
-      if(weekday==null)continue;
-
-
-
-      for(
-      DateTime date=start;
-      !date.isAfter(end);
-      date=date.add(
-          const Duration(days:1)
-      )
-      ){
-
-
-
-        if(date.weekday != weekday){
-
-          continue;
-
-        }
-
-
-
-        final dateValue =
-        _formatDateKey(date);
-
-
-
-        final label =
-        "$jour ${date.day}/${date.month}";
-
-
-
-        _allDateOccurrences.add({
-
-          "label":label,
-
-          "value":dateValue,
-
-          "jour":jour,
-
-        });
-
-
-
-
-        for(final slot in _allSlots){
-
-
-          if(slot['jour']!=jour){
-
-            continue;
-
-          }
-
-
-
-          final key =
-          "$dateValue-${slot['start']}-${slot['end']}";
-
-
-
-          if(keys.add(key)){
-
-
-            _allDateSlots.add({
-
-              "label":label,
-
-              "value":dateValue,
-
-              "jour":jour,
-
-              "start":slot['start']!,
-
-              "end":slot['end']!,
-
-              "time":slot['time']!,
-
-
-            });
-
-
-          }
-
-
-        }
-
-
+    final start = _startOfWeek(DateTime.now());
+    final end = start.add(const Duration(days: 41));
+    final groupedSlots = <String, List<Map<String, dynamic>>>{};
+
+    for (final slot in _allSlots) {
+      final rawDate = slot['date']?.toString().trim() ?? '';
+      final jour = slot['jour']?.toString().trim() ?? '';
+
+      if (rawDate.isNotEmpty) {
+        groupedSlots.putIfAbsent(rawDate, () => []).add(slot);
+        continue;
       }
 
+      final weekday = _weekdayNumber(jour);
+      if (weekday == null) {
+        continue;
+      }
 
+      for (DateTime date = start; !date.isAfter(end); date = date.add(const Duration(days: 1))) {
+        if (date.weekday != weekday) {
+          continue;
+        }
+
+        final dateValue = _formatDateKey(date);
+        groupedSlots.putIfAbsent(dateValue, () => []).add(slot);
+      }
     }
 
+    final sortedDates = groupedSlots.keys.toList()..sort();
 
+    for (final dateValue in sortedDates) {
+      final parsedDate = DateTime.tryParse(dateValue);
+      final label = parsedDate == null
+          ? dateValue
+          : '${_weekdayLabel(parsedDate)} ${parsedDate.day}/${parsedDate.month}';
 
-    _allDateOccurrences.sort(
-          (a,b)=>
-      a['value']!
-          .compareTo(
-          b['value']!
-      ),
-    );
+      _allDateOccurrences.add({
+        'label': label,
+        'value': dateValue,
+        'jour': parsedDate == null ? 'Date' : _weekdayLabel(parsedDate),
+      });
+    }
 
+    for (final occurrence in _allDateOccurrences) {
+      final dateValue = occurrence['value']!.toString();
+      final slotsForDate = groupedSlots[dateValue] ?? const [];
+      final seenKeys = <String>{};
 
-    _allDateSlots.sort(
-          (a,b){
+      for (final slot in slotsForDate) {
+        final slotKey = '${dateValue}-${slot['start']}-${slot['end']}-${slot['id'] ?? ''}';
+        if (!seenKeys.add(slotKey)) {
+          continue;
+        }
 
-        final d =
-        a['value']!
-            .compareTo(
-            b['value']!
-        );
+        _allDateSlots.add({
+          'label': occurrence['label']!,
+          'value': dateValue,
+          'jour': occurrence['jour']!,
+          'start': slot['start']!,
+          'end': slot['end']!,
+          'time': slot['time']!,
+          'isAvailable': slot['isAvailable'] ?? true,
+          'id': slot['id'],
+        });
+      }
+    }
 
-
-        if(d!=0)return d;
-
-
-        return a['start']!
-            .compareTo(
-            b['start']!
-        );
-
-
-      },
-    );
-
-
+    _allDateOccurrences.sort((a, b) => a['value']!.compareTo(b['value']!));
+    _allDateSlots.sort((a, b) {
+      final d = a['value']!.compareTo(b['value']!);
+      if (d != 0) return d;
+      return a['start']!.compareTo(b['start']!);
+    });
 
     _applyWeekFilter();
-
-
   }
 
+  int? _weekdayNumber(String jour) {
+    const days = {
+      'lundi': DateTime.monday,
+      'mardi': DateTime.tuesday,
+      'mercredi': DateTime.wednesday,
+      'jeudi': DateTime.thursday,
+      'vendredi': DateTime.friday,
+      'samedi': DateTime.saturday,
+      'dimanche': DateTime.sunday,
+    };
 
+    return days[jour.toLowerCase()];
+  }
 
-  // =============================
-  // FILTER BY WEEK
-  // =============================
+  String _weekdayLabel(DateTime date) {
+    const weekdays = <String>[
+      'lundi',
+      'mardi',
+      'mercredi',
+      'jeudi',
+      'vendredi',
+      'samedi',
+      'dimanche',
+    ];
+    return weekdays[date.weekday - 1];
+  }
 
   void _applyWeekFilter() {
     _availableDates.clear();
@@ -1000,11 +381,7 @@ class _RdvPdParentState extends State<RdvPdParent> {
 
     final start = _currentWeekStart();
     final end = start.add(const Duration(days: 6));
-    final today = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-    );
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
     for (final date in _allDateOccurrences) {
       final parsed = DateTime.tryParse(date['value']!);
@@ -1027,11 +404,6 @@ class _RdvPdParentState extends State<RdvPdParent> {
     _availableDates.sort((a, b) => a['value']!.compareTo(b['value']!));
   }
 
-
-  // =============================
-  // CHANGE WEEK
-  // =============================
-
   void _changeWeek(int value) {
     if (_selectedWeekOffset + value < 0) {
       return;
@@ -1042,11 +414,6 @@ class _RdvPdParentState extends State<RdvPdParent> {
       _applyWeekFilter();
     });
   }
-
-
-  // =============================
-  // SELECT DATE
-  // =============================
 
   void _selectDate(int index) {
     final date = _availableDates[index];
@@ -1060,11 +427,6 @@ class _RdvPdParentState extends State<RdvPdParent> {
         ..addAll(slots);
     });
   }
-
-
-  // =============================
-  // SELECT SLOT
-  // =============================
 
   void _selectSlot(int index) {
     setState(() {
@@ -1080,7 +442,6 @@ class _RdvPdParentState extends State<RdvPdParent> {
         _selectedSlotIndex != null &&
         _motifController.text.trim().isNotEmpty;
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -1149,7 +510,7 @@ class _RdvPdParentState extends State<RdvPdParent> {
                   ),
                 )
               else if (_searchController.text.trim().isNotEmpty)
-                
+                const SizedBox.shrink(),
               if (_selectedStudent != null) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -1288,19 +649,34 @@ class _RdvPdParentState extends State<RdvPdParent> {
                   itemBuilder: (context, index) {
                     final slot = _filteredSlots[index];
                     final selected = _selectedSlotIndex == index;
+                    final isAvailable = slot['isAvailable'] == true;
                     return GestureDetector(
-                      onTap: _selectedDayIndex != null ? () => _selectSlot(index) : null,
+                      onTap: (isAvailable && _selectedDayIndex != null) ? () => _selectSlot(index) : null,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: selected ? primary : Colors.white,
+                          color: selected
+                              ? primary
+                              : isAvailable
+                                  ? Colors.white
+                                  : Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: selected ? Colors.blue : Colors.grey.shade300),
+                          border: Border.all(
+                            color: selected
+                                ? Colors.blue
+                                : isAvailable
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade400,
+                          ),
                         ),
                         child: Center(
                           child: Text(
-                            slot['time']!,
+                            '${slot['start'] ?? ''} - ${slot['end'] ?? ''}',
                             style: TextStyle(
-                              color: selected ? Colors.white : Colors.black,
+                              color: selected
+                                  ? Colors.white
+                                  : isAvailable
+                                      ? Colors.black
+                                      : Colors.grey.shade600,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1357,127 +733,43 @@ class _RdvPdParentState extends State<RdvPdParent> {
   }
 
   Future<void> _createRdv() async {
+    final selectedStudentParentId = _selectedParentId ?? parentId;
+    debugPrint('Selected Student Parent ID: $selectedStudentParentId');
 
+    if (_selectedDayIndex == null || _selectedSlotIndex == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez sélectionner une date et un créneau.')),
+      );
+      return;
+    }
 
-  final selectedStudentParentId = _selectedParentId ?? parentId;
-      debugPrint("Selected Student Parent ID: $selectedStudentParentId");
+    final motif = _motifController.text.trim();
 
- 
+    if (motif.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez saisir un motif.')),
+      );
+      return;
+    }
 
+    final date = _availableDates[_selectedDayIndex!]['value']!;
+    final slot = _filteredSlots[_selectedSlotIndex!];
 
+    if ((selectedStudentParentId ?? 0) <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez sélectionner un élève valide.')),
+      );
+      return;
+    }
 
+    if (idPd <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Id pédagogique introuvable.')),
+      );
+      return;
+    }
 
-  if(_selectedDayIndex == null ||
-      _selectedSlotIndex == null){
-
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-
-      const SnackBar(
-        content:
-        Text(
-          "Veuillez sélectionner une date et un créneau."
-        ),
-      ),
-
-    );
-
-
-    return;
-
-  }
-
-
-
-
-  final motif =
-  _motifController.text.trim();
-
-
-
-  if(motif.isEmpty){
-
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-
-      const SnackBar(
-        content:
-        Text(
-          "Veuillez saisir un motif."
-        ),
-      ),
-
-    );
-
-
-    return;
-
-  }
-
-
-
-
-
-  final date =
-  _availableDates[_selectedDayIndex!]['value']!;
-
-
-
-
-  final slot =
-  _filteredSlots[_selectedSlotIndex!];
-
-
-
-
-  if((selectedStudentParentId ?? 0) <= 0){
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-
-      const SnackBar(
-        content:
-        Text(
-          "Veuillez sélectionner un élève valide."
-        ),
-      ),
-
-    );
-
-
-    return;
-
-  }
-
-
-
-  if(idPd <= 0){
-
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-
-      const SnackBar(
-        content:
-        Text(
-          "Id pédagogique introuvable."
-        ),
-      ),
-
-    );
-
-
-    return;
-
-  }
-
-
-
-
-  debugPrint(
-      """
+    debugPrint('''
 CREATE RDV:
 idPd=$idPd
 parent=$_selectedParentId
@@ -1485,99 +777,40 @@ date=$date
 start=${slot['start']}
 end=${slot['end']}
 motif=$motif
-"""
-  );
+''');
 
-
-
-
-  final result =
-  await RdvProvider().createPDRdv(
-
-    idpd: idPd,
-
-    idParent: selectedStudentParentId,
-
-    date: date,
-
-    timeStart: slot['start']!,
-
-    timeEnd: slot['end']!,
-
-    motif: motif,
-
-    role: "pedagogique",
-
-  );
-
-
-
-
-  if(!mounted)return;
-
-
-
-
-  if(result == 200 ||
-      result == 201){
-
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-
-      const SnackBar(
-        content:
-        Text(
-          "Rendez-vous créé avec succès."
-        ),
-      ),
-
+    final result = await RdvProvider().createPDRdv(
+      idpd: idPd,
+      idParent: selectedStudentParentId,
+      date: date,
+      timeStart: slot['start']!,
+      timeEnd: slot['end']!,
+      motif: motif,
+      role: 'pedagogique',
     );
 
+    if (!mounted) return;
 
+    if (result == 200 || result == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rendez-vous créé avec succès.')),
+      );
 
-    setState((){
+      setState(() {
+        _selectedDayIndex = null;
+        _selectedSlotIndex = null;
+        _filteredSlots.clear();
+        _motifController.clear();
+      });
 
-
-      _selectedDayIndex = null;
-
-      _selectedSlotIndex = null;
-
-      _filteredSlots.clear();
-
-      _motifController.clear();
-
-
-    });
-    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const Pd_rendezvous_screen(),
-                      ),
-                    );
-
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const Pd_rendezvous_screen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur création RDV : $result')),
+      );
+    }
   }
-
-  else{
-
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-
-      SnackBar(
-
-        content:
-        Text(
-          "Erreur création RDV : $result"
-        ),
-
-      ),
-
-    );
-
-
-  }
-
-
-}
 }

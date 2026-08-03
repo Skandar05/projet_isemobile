@@ -3,6 +3,82 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+List<Map<String, dynamic>> normalizeDisponibilitePayload(dynamic decoded) {
+  List<dynamic> items = [];
+
+  if (decoded is Map) {
+    items = decoded['slots'] ?? decoded['data'] ?? decoded['disponibilites'] ?? decoded['items'] ?? [];
+  } else if (decoded is List) {
+    items = decoded;
+  }
+
+  if (items is! List) {
+    return [];
+  }
+
+  final flattened = <Map<String, dynamic>>[];
+
+  for (final item in items) {
+    if (item is! Map) {
+      continue;
+    }
+
+    final day = Map<String, dynamic>.from(item);
+    final intervals = day['intervals'];
+
+    if (intervals is List && intervals.isNotEmpty) {
+      for (final interval in intervals) {
+        if (interval is! Map) {
+          continue;
+        }
+
+        final intervalMap = Map<String, dynamic>.from(interval);
+        final start = intervalMap['start']?.toString() ?? intervalMap['heuredebut']?.toString() ?? '';
+        final end = intervalMap['end']?.toString() ?? intervalMap['heurefin']?.toString() ?? '';
+        final isAvailable = intervalMap['isAvailable'] is bool
+            ? intervalMap['isAvailable'] as bool
+            : intervalMap['available'] is bool
+                ? intervalMap['available'] as bool
+                : day['isAvailable'] is bool
+                    ? day['isAvailable'] as bool
+                    : true;
+
+        flattened.add({
+          ...day,
+          ...intervalMap,
+          'jour': day['jour']?.toString() ?? '',
+          'date': day['date']?.toString() ?? day['value']?.toString() ?? '',
+          'start': start,
+          'end': end,
+          'time': start.isNotEmpty && end.isNotEmpty ? '$start - $end' : intervalMap['time']?.toString() ?? '',
+          'isAvailable': isAvailable,
+        });
+      }
+      continue;
+    }
+
+    final start = day['start']?.toString() ?? day['heuredebut']?.toString() ?? '';
+    final end = day['end']?.toString() ?? day['heurefin']?.toString() ?? '';
+    final isAvailable = day['isAvailable'] is bool
+        ? day['isAvailable'] as bool
+        : day['available'] is bool
+            ? day['available'] as bool
+            : true;
+
+    flattened.add({
+      ...day,
+      'jour': day['jour']?.toString() ?? '',
+      'date': day['date']?.toString() ?? day['value']?.toString() ?? '',
+      'start': start,
+      'end': end,
+      'time': start.isNotEmpty && end.isNotEmpty ? '$start - $end' : day['time']?.toString() ?? '',
+      'isAvailable': isAvailable,
+    });
+  }
+
+  return flattened;
+}
+
 class PdProvider extends ChangeNotifier {
   final http.Client _client = http.Client();
 
@@ -387,5 +463,49 @@ Future<String> getPedagogiqueName(int idPd) async {
     debugPrint('Error fetching pedagogique name: $e');
     return 'Unknown Pedagogique';
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Future<List<Map<String, dynamic>>> GetDispoV2(int idPedagogique) async {
+  final baseUrl = _baseUrl;
+
+  if (baseUrl == null || baseUrl.isEmpty) {
+    throw Exception('BACKEND_URL is not configured');
+  }
+
+  final response = await _client.get(
+    Uri.parse('$baseUrl/api/Pedagogique/disponibilites/$idPedagogique'),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      'Failed to load disponibilites for pedagogique ($idPedagogique) (${response.statusCode})',
+    );
+  }
+
+  final decoded = jsonDecode(response.body);
+  debugPrint('Fetched disponibilites for pedagogique $idPedagogique');
+
+  return normalizeDisponibilitePayload(decoded);
 }
 }
