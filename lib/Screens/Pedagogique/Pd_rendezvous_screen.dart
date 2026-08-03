@@ -628,7 +628,7 @@ Future<void> loadCounts() async {
       'pedagogiqueNomfr',
       'prenomPedagogique',
     ]);
-    return name.isNotEmpty ? name : namepd;
+    return name.isNotEmpty ? name : "";
   }
 
   String _teacherName(Map<String, dynamic> rdv) {
