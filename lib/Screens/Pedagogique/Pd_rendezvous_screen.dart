@@ -18,7 +18,7 @@ String resolveRdvStatusLabel(Object? status) {
     return 'Acceptés';
   }
   if (value.contains('refus') || value.contains('rej')) {
-    return 'Rejetés';
+    return 'Reportés';
   }
   return 'En attente';
 }
@@ -65,7 +65,7 @@ List<Map<String, dynamic>> filterRdvsByStatus(
 }
 
 Map<String, int> buildStatusCounts(List<Map<String, dynamic>> rdvs) {
-  final counts = {'En attente': 0, 'Acceptés': 0, 'Rejetés': 0};
+  final counts = {'En attente': 0, 'Acceptés': 0, 'Reportés': 0};
 
   for (final rdv in rdvs) {
     final status = resolveRdvStatusLabel(rdv['statuts'] ?? rdv['status'] ?? '');
@@ -96,7 +96,7 @@ class _Pd_rendezvous_screenState extends State<Pd_rendezvous_screen> {
   bool isPedagogique = true;
   String _isselected = 'Pedagogique';
   String _selectedFilter = 'Tous';
-  final List<String> _statusFilters = ['Tous', 'En attente', 'Acceptés', 'Rejetés'];
+  final List<String> _statusFilters = ['Tous', 'En attente', 'Acceptés', 'Reportés'];
   List<Map<String, dynamic>> RdvPD = [];
 
   Map<String, String> rdvCounts = {};
@@ -427,7 +427,7 @@ Future<void> loadCounts() async {
 
   bool _isResolvedRdv(Map<String, dynamic> rdv) {
     final status = resolveRdvStatusLabel(rdv['statuts'] ?? rdv['status'] ?? '');
-    return status == 'Acceptés' || status == 'Rejetés';
+    return status == 'Acceptés' || status == 'Reportés';
   }
 
   bool _matchRdvId(Map<String, dynamic> item, Object? targetId) {

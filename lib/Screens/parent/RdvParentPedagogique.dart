@@ -132,6 +132,14 @@ class _RdvParentPdState extends State<RdvParentPd> {
 
       });
 
+      if (pedagogiques.length == 1) {
+        final onlyPd = pedagogiques.first;
+        final idValue = int.tryParse(onlyPd['idpersonne']?.toString() ?? '');
+        if (idValue != null) {
+          await _onSelectPedagogique(idValue);
+        }
+      }
+
 
 
     }

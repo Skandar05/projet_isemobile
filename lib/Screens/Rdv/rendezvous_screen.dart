@@ -119,7 +119,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
       return 'Acceptés';
     }
     if (value.contains('refus') || value.contains('rej')) {
-      return 'Rejetés';
+      return 'Reportés';
     }
     return 'En attente';
   }
