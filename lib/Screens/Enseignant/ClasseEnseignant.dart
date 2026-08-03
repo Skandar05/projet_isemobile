@@ -212,7 +212,10 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredStudents = filterStudentsByQuery(_students, _searchController.text);
+    final query = _searchController.text.trim();
+    final filteredStudents = query.isEmpty
+        ? <Map<String, dynamic>>[]
+        : filterStudentsByQuery(_students, query);
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
@@ -258,63 +261,70 @@ class _ClasseEnseignantState extends State<ClasseEnseignant> {
                               style: TextStyle(color: Colors.red.shade400),
                             ),
                           )
-                        : filteredStudents.isEmpty
-                            ? const Center(child: Text('Aucun élève trouvé'))
-                            : ListView.separated(
-                                itemCount: filteredStudents.length,
-                                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                                itemBuilder: (context, index) {
-                                  final student = filteredStudents[index];
-                                  final studentName = student['fullName']?.toString().trim().isNotEmpty == true
-                                      ? student['fullName'].toString().trim()
-                                      : 'Élève sans nom';
+                        : query.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'Commencez à taper le nom d\'un élève',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              )
+                            : filteredStudents.isEmpty
+                                ? const Center(child: Text('Aucun élève trouvé'))
+                                : ListView.separated(
+                                    itemCount: filteredStudents.length,
+                                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                                    itemBuilder: (context, index) {
+                                      final student = filteredStudents[index];
+                                      final studentName = student['fullName']?.toString().trim().isNotEmpty == true
+                                          ? student['fullName'].toString().trim()
+                                          : 'Élève sans nom';
 
-                                  return InkWell(
-                                    borderRadius: BorderRadius.circular(16),
-                                    onTap: () => _selectStudent(student),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
+                                      return InkWell(
                                         borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: Colors.grey.shade200),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          CircleAvatar(
-                                            backgroundColor: const Color(0xffEAF3FF),
-                                            child: Icon(Icons.person, color: Colors.blue.shade700),
+                                        onTap: () => _selectStudent(student),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(color: Colors.grey.shade200),
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  studentName,
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
+                                          child: Row(
+                                            children: [
+                                              CircleAvatar(
+                                                backgroundColor: const Color(0xffEAF3FF),
+                                                child: Icon(Icons.person, color: Colors.blue.shade700),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      studentName,
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      student['className']?.toString() ?? '',
+                                                      style: TextStyle(
+                                                        color: Colors.grey.shade600,
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  student['className']?.toString() ?? '',
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade600,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
+                                              ),
+                                              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                            ],
                                           ),
-                                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+                                        ),
+                                      );
+                                    },
+                                  ),
               ),
             ],
           ),

@@ -1,10 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
-import 'package:test/Screens/Enseignant/ClasseEnseignant.dart';
 import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Enseignant/home_Enseignant.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
+import 'package:test/Screens/Rdv/ChooseCreneauScreen.dart';
 import 'package:test/Screens/Rdv/creationRDV.dart';
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import 'package:test/Screens/parent/RdvType.dart';
@@ -269,7 +269,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            _isTeacher ? const ClasseEnseignant() : const RdvType(),
+            _isTeacher ? const ChooseCreneauScreen(isTeacher: true) : const RdvType(),
       ),
     );
   }
@@ -738,7 +738,6 @@ Widget build(BuildContext context) {
                       child: ElevatedButton.icon(
                         onPressed:
                             _openDisponibiliteConfiguration,
-
                         icon: const Icon(
                           Icons.calendar_today,
                           size: 18,

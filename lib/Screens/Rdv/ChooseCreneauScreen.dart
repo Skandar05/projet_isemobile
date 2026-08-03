@@ -2,12 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'ConfirmAndSendScreen.dart';
+import 'package:test/providers/EnseignantProvider.dart';
+import 'package:test/providers/Rdv_provider.dart';
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import '../parent/home_Parent.dart';
 import '../Enseignant/home_Enseignant.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'SuccessRdvScreen.dart';
 
 class ChooseCreneauScreen extends StatefulWidget {
   
@@ -19,7 +22,7 @@ class ChooseCreneauScreen extends StatefulWidget {
   
 }
 
-class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
+class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsBindingObserver {
   String id = '';
   String fullname = '';
   String matiere = '';
@@ -44,11 +47,73 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
   final List<Map<String, String>> allDateSlots = [];
   final List<Map<String, String>> filteredDateSlots = [];
   String nomparent = '';
+  final TextEditingController _motifController = TextEditingController();
+  bool _canSend = false;
+  bool _isSubmitting = false;
+  String selectedDateDisplay = '';
+  String selectedDateValue = '';
+  String selectedTimeValue = '';
+  int idParent = 0;
+  int idEnseignant = 0;
+  String parentName = '';
+  final TextEditingController _teacherSearchController = TextEditingController();
+  final List<Map<String, dynamic>> _teacherStudents = [];
+  bool _teacherStudentsLoading = false;
+  String? _teacherStudentsError;
+  String _selectedTeacherStudentId = '';
+  String _selectedTeacherStudentName = '';
+  String _selectedTeacherClassName = '';
+  String _selectedTeacherParentName = '';
+  String _selectedTeacherParentId = '';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _motifController.addListener(_updateCanSend);
+    _teacherSearchController.addListener(_updateCanSend);
     loadPrefs();
+    if (widget.isTeacher) {
+      _loadTeacherStudents();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _motifController.removeListener(_updateCanSend);
+    _motifController.dispose();
+    _teacherSearchController.removeListener(_updateCanSend);
+    _teacherSearchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (widget.isTeacher && state == AppLifecycleState.resumed) {
+      _clearTeacherSelection(clearPrefs: true);
+    }
+  }
+  Future<void>loadstudent()async{
+    final prefs = await SharedPreferences.getInstance();
+    final storedStudents = prefs.getString('teacherStudentsCache');
+
+  }
+
+  void _updateCanSend() {
+    final hasTeacherStudent = !widget.isTeacher || _selectedTeacherStudentId.isNotEmpty;
+    final canSend = !_isSubmitting &&
+        selectedDayIndex != null &&
+        selectedSlotIndex != null &&
+        _motifController.text.trim().isNotEmpty &&
+        hasTeacherStudent;
+
+    if (_canSend != canSend) {
+      setState(() {
+        _canSend = canSend;
+      });
+    }
   }
 
   void _dismissKeyboard() {
@@ -56,9 +121,176 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
+  Map<String, dynamic> _normalizeTeacherStudent(Map<String, dynamic> studentMap) {
+    final firstName = (studentMap['prenomfr'] ?? studentMap['Prenomfr'] ?? '').toString().trim();
+    final lastName = (studentMap['nomfr'] ?? studentMap['Nomfr'] ?? '').toString().trim();
+    final parents = (studentMap['parents'] as List<dynamic>? ?? [])
+        .map<Map<String, dynamic>>((parent) => Map<String, dynamic>.from(parent as Map))
+        .toList();
+
+    return {
+      ...studentMap,
+      'studentId': studentMap['id']?.toString() ?? studentMap['studentId']?.toString() ?? '',
+      'firstName': firstName,
+      'lastName': lastName,
+      'fullName': '$lastName $firstName'.trim(),
+      'classId': studentMap['classId']?.toString() ?? studentMap['classe_id']?.toString() ?? '',
+      'className': studentMap['className']?.toString() ?? studentMap['classe_nomfr']?.toString() ?? studentMap['nomClasse']?.toString() ?? studentMap['nomclasse']?.toString() ?? '',
+      'parents': parents,
+      'parentIds': parents
+          .map((parent) => parent['idpersonne']?.toString() ?? parent['idPersonne']?.toString() ?? parent['id_personne']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .join(','),
+      'parentNames': parents
+          .map((parent) {
+            final parentFirstName = (parent['prenomfr'] ?? parent['Prenomfr'] ?? '').toString().trim();
+            final parentLastName = (parent['nomfr'] ?? parent['Nomfr'] ?? '').toString().trim();
+            return '$parentLastName $parentFirstName'.trim();
+          })
+          .where((name) => name.isNotEmpty)
+          .join(' & '),
+    };
+  }
+
+  Future<void> _loadTeacherStudents() async {
+    if (!widget.isTeacher) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final teacherId = prefs.getInt('idE') ?? prefs.getInt('idEnseignant') ?? 0;
+
+    if (teacherId <= 0) {
+      if (!mounted) return;
+      setState(() {
+        _teacherStudentsLoading = false;
+        _teacherStudentsError = 'Identifiant enseignant introuvable.';
+      });
+      return;
+    }
+
+    setState(() {
+      _teacherStudentsLoading = true;
+      _teacherStudentsError = null;
+    });
+
+    try {
+      final provider = Provider.of<EnseignantProvider>(context, listen: false);
+      final normalizedStudents = <Map<String, dynamic>>[];
+      final cachedStudents = prefs.getString('teacherStudentsCache');
+
+      if (cachedStudents != null && cachedStudents.isNotEmpty) {
+        final decodedData = jsonDecode(cachedStudents);
+        if (decodedData is List) {
+          for (final item in decodedData) {
+            final student = item is Map<String, dynamic>
+                ? Map<String, dynamic>.from(item)
+                : Map<String, dynamic>.from(item as Map);
+            normalizedStudents.add(_normalizeTeacherStudent(student));
+          }
+        }
+      }
+
+      if (normalizedStudents.isEmpty) {
+        final students = await provider.GetAllStudents(teacherId);
+        for (final item in students) {
+          final student = item is Map<String, dynamic>
+              ? Map<String, dynamic>.from(item)
+              : Map<String, dynamic>.from(item as Map);
+          normalizedStudents.add(_normalizeTeacherStudent(student));
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _teacherStudents.clear();
+        _teacherStudents.addAll(normalizedStudents);
+      });
+
+      await prefs.setString('teacherStudentsCache', jsonEncode(_teacherStudents));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _teacherStudentsError = 'Impossible de charger les élèves.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _teacherStudentsLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _selectTeacherStudent(Map<String, dynamic> student) async {
+    FocusScope.of(context).unfocus();
+
+    final studentId = student['studentId']?.toString() ?? '';
+    final firstName = (student['prenomfr'] ?? student['Prenomfr'] ?? '').toString().trim();
+    final lastName = (student['nomfr'] ?? student['Nomfr'] ?? '').toString().trim();
+    final fullName = '$lastName $firstName'.trim();
+    final className = student['className']?.toString() ?? '';
+    final parents = (student['parents'] as List<dynamic>? ?? []);
+
+    String resolvedParentId = '';
+    String resolvedParentName = '';
+    for (final parent in parents) {
+      final parentMap = parent is Map<String, dynamic>
+          ? parent
+          : Map<String, dynamic>.from(parent as Map);
+      final parentFirstName = (parentMap['prenomfr'] ?? parentMap['Prenomfr'] ?? '').toString().trim();
+      final parentLastName = (parentMap['nomfr'] ?? parentMap['Nomfr'] ?? '').toString().trim();
+      final name = '$parentLastName $parentFirstName'.trim();
+      final parentId = parentMap['idpersonne']?.toString() ?? parentMap['idPersonne']?.toString() ?? parentMap['id_personne']?.toString() ?? '';
+      if (resolvedParentId.isEmpty && parentId.isNotEmpty) {
+        resolvedParentId = parentId;
+      }
+      if (resolvedParentName.isEmpty && name.isNotEmpty) {
+        resolvedParentName = name;
+      }
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final provider = Provider.of<EnseignantProvider>(context, listen: false);
+    final responsableId = await provider.getResponsable(int.tryParse(studentId) ?? 0);
+
+    final selectedParentName = (student['parentNames']?.toString().trim().isNotEmpty == true)
+        ? student['parentNames'].toString().trim()
+        : (resolvedParentName.isNotEmpty ? resolvedParentName : (fullName.isNotEmpty ? fullName : 'Responsable'));
+    final selectedParentId = responsableId > 0 ? responsableId.toString() : (resolvedParentId.isNotEmpty ? resolvedParentId : '');
+
+    if (!mounted) return;
+
+    setState(() {
+      _selectedTeacherStudentId = studentId;
+      _selectedTeacherStudentName = fullName;
+      _selectedTeacherClassName = className;
+      _selectedTeacherParentName = selectedParentName;
+      _selectedTeacherParentId = selectedParentId;
+      _teacherSearchController.text = fullName;
+    });
+
+    if (!mounted) return;
+
+    await prefs.setString('rdvFlow', 'teacher');
+    await prefs.setString('selectedTeacherStudentId', studentId);
+    await prefs.setString('selectedTeacherStudentName', fullName);
+    await prefs.setString('selectedTeacherClassId', student['classId']?.toString() ?? '');
+    await prefs.setString('selectedTeacherClassName', className);
+    await prefs.setString('selectedTeacherParentId', _selectedTeacherParentId);
+    await prefs.setString('selectedTeacherParentName', _selectedTeacherParentName);
+
+    _updateCanSend();
+  }
+
   Future<void> loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-   nomparent = prefs.getString("selectedTeacherParentName") ?? '';
+    if (widget.isTeacher) {
+      await _clearPersistedTeacherSelection(prefs);
+    }
+
+    nomparent = prefs.getString('selectedTeacherParentName') ?? '';
+    parentName = nomparent;
+
     // Try multiple keys: handle int or string stored values
     String savedId = '';
     final dynamic rawIdEnseignant = prefs.get('idEnseignant');
@@ -86,10 +318,21 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
 
     setState(() {
       id = savedId;
-      fullname = prefs.getString("enseignantFullname") ?? '';
-      // Try to get matiere from both old and new keys
-      matiere = prefs.getString("matiere") ?? prefs.getString("Nommatierefr") ?? '';
+      fullname = prefs.getString('enseignantFullname') ?? '';
+      matiere = prefs.getString('matiere') ?? prefs.getString('Nommatierefr') ?? '';
+      selectedDateDisplay = prefs.getString('selectedDayLabel') ?? '';
+      selectedDateValue = prefs.getString('selectedDateValue') ?? '';
+      selectedTimeValue = prefs.getString('selectedTimeValue') ?? '';
+      idParent = prefs.getInt('idPersonne') ?? 0;
+      final dynamic rawIdEns = prefs.get('idEnseignant');
+      if (rawIdEns is int) {
+        idEnseignant = rawIdEns;
+      } else {
+        idEnseignant = int.tryParse(rawIdEns?.toString() ?? '') ?? 0;
+      }
     });
+
+    _updateCanSend();
 
     if (id.isNotEmpty) {
       await fetchDisponibilites();
@@ -99,6 +342,35 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
         errorMessage = 'Identifiant de l\'enseignant introuvable.';
       });
     }
+  }
+
+  Future<void> _clearPersistedTeacherSelection(SharedPreferences prefs) async {
+    await prefs.remove('selectedTeacherStudentId');
+    await prefs.remove('selectedTeacherStudentName');
+    await prefs.remove('selectedTeacherClassId');
+    await prefs.remove('selectedTeacherClassName');
+    await prefs.remove('selectedTeacherParentId');
+    await prefs.remove('selectedTeacherParentName');
+  }
+
+  void _clearTeacherSelection({bool clearPrefs = false}) async {
+    if (clearPrefs) {
+      final prefs = await SharedPreferences.getInstance();
+      await _clearPersistedTeacherSelection(prefs);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _selectedTeacherStudentId = '';
+      _selectedTeacherStudentName = '';
+      _selectedTeacherClassName = '';
+      _selectedTeacherParentName = '';
+      _selectedTeacherParentId = '';
+      _teacherSearchController.clear();
+    });
+
+    _updateCanSend();
   }
 
   List<Map<String, String>> _generateSlots(String start, String end, {int slotMinutes = 15}) {
@@ -425,6 +697,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
         ..clear()
         ..addAll(slotsForDate);
     });
+
+    _updateCanSend();
   }
 
   @override
@@ -441,74 +715,204 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
               const SizedBox(height: 20),
-
-              // 📊 Stepper
-              Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.blue),
-                  Expanded(
-                    child: Container(height: 2, color: Colors.blue),
+              if (!widget.isTeacher)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const CircleAvatar(
-                    radius: 12,
-                    backgroundColor: Colors.blue,
-                    child: Text("2",
-                        style: TextStyle(color: Colors.white, fontSize: 12)),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        backgroundColor: Color(0xff1F4B8F),
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            fullname,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            matiere,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: Container(height: 2, color: Colors.grey),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const CircleAvatar(
-                    radius: 12,
-                    backgroundColor: Colors.grey,
-                    child: Text("3",
-                        style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // TEACHER CARD
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      backgroundColor: Color(0xff1F4B8F),
-                      child: Icon(Icons.person,
-                          color: Colors.white),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.isTeacher ? nomparent : fullname,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'RECHERCHER UN ÉLÈVE',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _teacherSearchController,
+                        onChanged: (_) {
+                          setState(() {});
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Nom de l’élève',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _teacherSearchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () {
+                                    setState(() {
+                                      _teacherSearchController.clear();
+                                      if (_selectedTeacherStudentId.isNotEmpty) {
+                                        _selectedTeacherStudentId = '';
+                                        _selectedTeacherStudentName = '';
+                                        _selectedTeacherClassName = '';
+                                        _selectedTeacherParentName = '';
+                                        _selectedTeacherParentId = '';
+                                      }
+                                    });
+                                    _updateCanSend();
+                                  },
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: const Color(0xffF5F7FB),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (_teacherStudentsLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_teacherStudentsError != null)
                         Text(
-                          widget.isTeacher ? '' : matiere,
-                          style: const TextStyle(
-                              color: Colors.grey),
+                          _teacherStudentsError!,
+                          style: const TextStyle(color: Colors.red),
+                        )
+                      else if (_selectedTeacherStudentId.isEmpty)
+                        Builder(
+                          builder: (_) {
+                            final query = _teacherSearchController.text.trim().toLowerCase();
+                            if (query.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  _teacherStudents.isEmpty
+                                      ? 'Chargement des élèves en cours...'
+                                      : 'Commencez à taper le nom d’un élève pour démarrer la recherche.',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              );
+                            }
+
+                            final filteredStudents = _teacherStudents.where((student) {
+                              final fullName = (student['fullName'] ?? '').toString().toLowerCase();
+                              final className = (student['className'] ?? '').toString().toLowerCase();
+                              return fullName.contains(query) || className.contains(query);
+                            }).take(10).toList();
+
+                            if (filteredStudents.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  'Aucun élève trouvé',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              );
+                            }
+
+                            return Column(
+                              children: filteredStudents.map((student) {
+                                final fullName = (student['fullName'] ?? '').toString();
+                                final className = (student['className'] ?? '').toString();
+                                return InkWell(
+                                  onTap: () => _selectTeacherStudent(student),
+                                  child: Container(
+                                    width: double.infinity,
+                                    margin: const EdgeInsets.only(top: 8),
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xffF5F7FB),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const CircleAvatar(
+                                          radius: 16,
+                                          backgroundColor: Color(0xff1F4B8F),
+                                          child: Icon(Icons.person, size: 16, color: Colors.white),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                              if (className.isNotEmpty)
+                                                Text(className, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            );
+                          },
+                        )
+                      else
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffF5F7FB),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selectedTeacherStudentName,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              if (_selectedTeacherClassName.isNotEmpty)
+                                Text(
+                                  _selectedTeacherClassName,
+                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                ),
+                              const SizedBox(height: 4),
+                              if (_selectedTeacherParentName.isNotEmpty)
+                                Text(
+                                  'Responsable : $_selectedTeacherParentName',
+                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                ),
+                            ],
+                          ),
                         ),
-                      ],
-                    )
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 20),
 
@@ -598,7 +1002,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                       return GestureDetector(
                         onTap: () => _selectDate(index),
                         child: Container(
-                          width: 130,
+                          width: 120,
                           margin: const EdgeInsets.only(right: 10),
                           decoration: BoxDecoration(
                             color: isSelected ? const Color(0xff1F4B8F) : Colors.white,
@@ -614,7 +1018,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                                 label,
                                 style: TextStyle(
                                   color: isSelected ? Colors.white : Colors.black,
-                                  fontSize: 15,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                                 textAlign: TextAlign.center,
@@ -624,7 +1028,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                                 'Créneaux disponibles',
                                 style: TextStyle(
                                   color: isSelected ? Colors.white70 : Colors.grey,
-                                  fontSize: 12,
+                                  fontSize: 10,
                                 ),
                               ),
                             ],
@@ -644,7 +1048,9 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
 
                 const SizedBox(height: 10),
 
-                Expanded(
+                SizedBox(
+                  height: 150,
+                  
                   child: filteredSlots.isEmpty
                       ? Center(
                           child: Padding(
@@ -662,9 +1068,9 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                           itemCount: filteredSlots.length,
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            childAspectRatio: 2.3,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
+                            childAspectRatio: 3,
+                            crossAxisSpacing: 15,
+                            mainAxisSpacing: 15,
                           ),
                           itemBuilder: (context, index) {
                             final slot = filteredSlots[index];
@@ -676,10 +1082,13 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                                       setState(() {
                                         selectedSlotIndex = index;
                                       });
+                                      _updateCanSend();
                                     }
                                   : null,
                               child: Container(
+                               
                                 decoration: BoxDecoration(
+                                  
                                   color: isSelected ? const Color(0xff1F4B8F) : Colors.white,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
@@ -687,6 +1096,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                                   ),
                                 ),
                                 child: Center(
+                          
                                   child: Text(
                                     slot['time'] ?? '',
                                     style: TextStyle(
@@ -702,23 +1112,79 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                 ),
               ],
 
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'MOTIF DU RENDEZ-VOUS',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _motifController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: 'Résultats, comportement, orientation, réclamation...',
+                        filled: true,
+                        fillColor: const Color(0xffF5F7FB),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.isTeacher
+                                  ? 'La demande sera envoyée au parent sélectionné et à l\'administration.'
+                                  : 'La demande sera envoyée à l\'enseignant et à l\'administration.',
+                              style: const TextStyle(color: Colors.orange),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 16),
 
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: selectedDayIndex != null && selectedSlotIndex != null
-                        ? const Color(0xff1F4B8F)
-                        : Colors.grey,
+                    backgroundColor: _canSend ? const Color(0xff1F4B8F) : Colors.grey,
                     padding: const EdgeInsets.all(16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: selectedDayIndex != null && selectedSlotIndex != null
+                  onPressed: _canSend && !_isSubmitting
                       ? () async {
                           _dismissKeyboard();
+
+                          setState(() {
+                            _isSubmitting = true;
+                          });
+                          _updateCanSend();
 
                           final prefs = await SharedPreferences.getInstance();
                           final selectedDate = availableDates[selectedDayIndex!];
@@ -734,20 +1200,82 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                             return;
                           }
 
-                          _dismissKeyboard();
+                          final rdvProvider = Provider.of<RdvProvider>(context, listen: false);
+                          bool created = false;
 
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ConfirmAndSendScreen(isTeacher: widget.isTeacher),
-                            ),
-                          );
+                          if (widget.isTeacher) {
+                            final idTeacher = prefs.getInt('IdteacherInfo') ??
+                                prefs.getInt('idEnseignant') ??
+                                prefs.getInt('idE') ??
+                                int.tryParse(prefs.getString('idEnseignant') ?? '') ??
+                                0;
+                            final parentIdStr = prefs.getString('selectedTeacherParentId') ?? '';
+                            final pid = int.tryParse(parentIdStr) ?? 0;
+
+                            if (pid > 0) {
+                              created = await rdvProvider.createTeacherRDV(
+                                idTeacher: idTeacher,
+                                idParent: pid,
+                                date: selectedDate['value'] ?? '',
+                                timeStart: selectedSlot['start'] ?? '',
+                                timeEnd: selectedSlot['end'] ?? '',
+                                motif: _motifController.text.trim(),
+                              );
+                            } else {
+                              final fallback = prefs.getInt('idPersonne') ?? 0;
+                              if (fallback > 0) {
+                                created = await rdvProvider.createTeacherRDV(
+                                  idTeacher: idTeacher,
+                                  idParent: fallback,
+                                  date: selectedDate['value'] ?? '',
+                                  timeStart: selectedSlot['start'] ?? '',
+                                  timeEnd: selectedSlot['end'] ?? '',
+                                  motif: _motifController.text.trim(),
+                                );
+                              }
+                            }
+                          } else {
+                            created = await rdvProvider.createRDV(
+                              idParent: idParent,
+                              idEnseignant: idEnseignant,
+                              date: selectedDate['value'] ?? '',
+                              temp: selectedSlot['time'] ?? '',
+                              motif: _motifController.text.trim(),
+                              heureDebut: selectedSlot['start'] ?? '',
+                              heureFin: selectedSlot['end'] ?? '',
+                            );
+                          }
+
+                          if (!context.mounted) {
+                            return;
+                          }
+
+                          if (created) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SuccessRdvScreen(
+                                  enseignantFullname: fullname.isNotEmpty ? fullname : (widget.isTeacher ? parentName : 'L\'enseignant'),
+                                  isTeacher: widget.isTeacher,
+                                ),
+                              ),
+                            );
+                          } else {
+                            setState(() {
+                              _isSubmitting = false;
+                            });
+                            _updateCanSend();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('La demande n\'a pas pu être envoyée. Veuillez réessayer.'),
+                              ),
+                            );
+                          }
                         }
                       : null,
-                  child: const Text(
-                    'Continuer →',
-                    style: TextStyle(
+                  child: Text(
+                    _isSubmitting ? 'Envoi en cours...' : 'Envoyer la demande',
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -756,6 +1284,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),

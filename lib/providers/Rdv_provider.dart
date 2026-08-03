@@ -4,8 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'student_provider.dart';
-import 'package:test/providers/EnseignantProvider.dart';
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RdvProvider extends ChangeNotifier {
@@ -213,7 +211,7 @@ Future<void> saveSelectedEnseignant({
     return 0;
   }
 
-Future<void> createRDV({
+Future<bool> createRDV({
   required int idParent,
   required int idEnseignant,
   required String date,
@@ -243,11 +241,14 @@ Future<void> createRDV({
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       debugPrint('RDV created successfully');
+      return true;
     } else {
       debugPrint('Failed to create RDV: ${response.statusCode}');
+      return false;
     }
   } catch (e) {
     debugPrint('Error creating RDV: $e');
+    return false;
   }
 }
 
@@ -373,7 +374,7 @@ Future<void> createRDV({
     notifyListeners();
   }
 
-  Future<void> createTeacherRDV({
+  Future<bool> createTeacherRDV({
     required int idTeacher,
     required int idParent,
     required String date,
@@ -401,11 +402,14 @@ Future<void> createRDV({
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         debugPrint('RDV created successfully by teacher');
+        return true;
       } else {
         debugPrint('Failed to create RDV by teacher: ${response.statusCode}');
+        return false;
       }
     } catch (e) {
       debugPrint('Error creating RDV by teacher: $e');
+      return false;
     }
   }
 
