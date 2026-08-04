@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:test/Screens/DashboardPage.dart';
 import 'package:test/Screens/Enseignant/disponibilite_configuration_screen.dart';
 import 'package:test/Screens/Enseignant/home_Enseignant.dart';
+import 'package:test/Screens/Pedagogique/RdvPedagogiqueParent.dart';
 import 'package:test/Screens/Widgets/appointment_card.dart';
 import 'package:test/Screens/Rdv/ChooseCreneauScreen.dart';
 import 'package:test/Screens/Rdv/creationRDV.dart';
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
+import 'package:test/Screens/parent/RdvParentPedagogique.dart';
 import 'package:test/Screens/parent/RdvType.dart';
 import 'package:test/Screens/parent/home_Parent.dart';
 import 'package:test/providers/EnseignantProvider.dart';
@@ -25,6 +27,7 @@ class RendezVousPage extends StatefulWidget {
 class _RendezVousPageState extends State<RendezVousPage> {
   List<Map<String, dynamic>> _rdvs = [];
   bool _isLoading = false;
+  bool ispd=false;
   final TextEditingController _pvController = TextEditingController();
 
   bool get _isTeacher => widget.isTeacher;
@@ -237,6 +240,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
   bool _isPedagogiqueRdv(Map<String, dynamic> rdv) {
     final role = (rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '').toString().toLowerCase();
     if (role.contains('pedagogique')) {
+      ispd=true;
       return true;
     }
 
@@ -909,7 +913,18 @@ Widget build(BuildContext context) {
                                               .rejectTeacherRDV(
                                                   id);
 
-                                          await _fetchRdv();
+                                          final bool isPdRdv = _isPedagogiqueRdv(rdv);
+
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => _isTeacher
+                                                  ? const ChooseCreneauScreen(isTeacher: true)
+                                                  : isPdRdv
+                                                      ? const RdvParentPd()
+                                                      : const ChooseContactScreen(),
+                                            ),
+                                          );
                                         }
                                       : null,
 
