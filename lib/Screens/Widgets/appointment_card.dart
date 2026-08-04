@@ -80,19 +80,24 @@ class AppointmentCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       child: Builder(builder: (context) {
                         final role = (demandeurRole ?? '').toString().toLowerCase();
-                        final isPedagogique = showPdIcon ||
-                            role.contains('pedagogique') ||
-                            role.contains('pd') ||
-                            (fromName ?? '').toLowerCase().contains('pedagogique') ||
-                            (toName ?? '').toLowerCase().contains('pedagogique');
+                        final from = (fromName ?? '').toLowerCase();
+                        final to = (toName ?? '').toLowerCase();
+                        final isRolePedagogique = role.contains('pedagogique') || role.contains('pd');
+                        final isFromPedagogique = from.contains('pedagogique') || from.contains('pd');
+                        final isToPedagogique = to.contains('pedagogique') || to.contains('pd');
+                        final isRoleTeacher = role.contains('enseignant') || role.contains('teacher');
+                        final isRoleParent = role.contains('parent');
+                        final isParentToPedagogique = isRoleParent && isToPedagogique;
 
                         String asset = 'lib/images/pdicon.png';
-                        if (!isPedagogique) {
-                          if (role.contains('enseignant') || role.contains('teacher')) {
-                            asset = 'lib/images/enseignanticon.png';
-                          } else if (role.contains('parent')) {
-                            asset = 'lib/images/parenticon.png';
-                          }
+                        if (isParentToPedagogique) {
+                          asset = 'lib/images/parenticon.png';
+                        } else if (isRolePedagogique || isFromPedagogique || isToPedagogique) {
+                          asset = 'lib/images/pdicon.png';
+                        } else if (isRoleTeacher || from.contains('enseignant') || from.contains('teacher') || to.contains('enseignant') || to.contains('teacher')) {
+                          asset = 'lib/images/enseignanticon.png';
+                        } else if (isRoleParent || from.contains('parent') || to.contains('parent')) {
+                          asset = 'lib/images/parenticon.png';
                         }
 
                         return Image.asset(
