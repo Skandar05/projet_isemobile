@@ -1116,7 +1116,17 @@ Widget build(BuildContext context) {
                               state: displayState,
                               onTap: () => _showRdvDetails(context, rdv),
                               onAccept: isParent && hasPedagogiqueOwner && !isResolved ? () => _handleAcceptRdv(rdv) : null,
-                              onReject: isParent && hasPedagogiqueOwner && !isResolved ? () => _handleRejectRdv(rdv) : null,
+                              onReject: isParent && hasPedagogiqueOwner && !isResolved
+                                  ? () async {
+                                      await _handleRejectRdv(rdv);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const RdvPdParent(),
+                                        ),
+                                      );
+                                    }
+                                  : null,
                               
                             );
                           },
