@@ -5,6 +5,7 @@ void main() {
   test('normalizes nested intervals payload into individual slots', () {
     final payload = [
       {
+        'iddisponibilites': 153,
         'idpedagogique': 8525,
         'jour': 'Lundi',
         'idenseignant': null,
@@ -27,8 +28,13 @@ void main() {
     expect(result[0]['jour'], 'Lundi');
     expect(result[0]['start'], '08:00');
     expect(result[0]['end'], '08:15');
+    expect(result[0]['iddisponibilites'], 153);
+    expect(result[0]['disponibiliteId'], 153);
+    expect(result[0]['intervalId'], 97);
     expect(result[0]['id'], 97);
     expect(result[1]['start'], '08:15');
     expect(result[1]['end'], '08:30');
+    expect(result[1]['disponibiliteId'], 153);
+    expect(result[1]['intervalId'], 98);
   });
 }

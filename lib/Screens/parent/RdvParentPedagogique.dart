@@ -28,11 +28,11 @@ class _RdvParentPdState extends State<RdvParentPd> {
   String? errorMessage;
 
   final List<String> availableDays = [];
-  final List<Map<String, String>> allSlots = [];
-  final List<Map<String, String>> filteredSlots = [];
-  final List<Map<String, String>> availableDates = [];
-  final List<Map<String, String>> allDateSlots = [];
-  final List<Map<String, String>> allDateOccurrences = [];
+  final List<Map<String, dynamic>> allSlots = [];
+  final List<Map<String, dynamic>> filteredSlots = [];
+  final List<Map<String, dynamic>> availableDates = [];
+  final List<Map<String, dynamic>> allDateSlots = [];
+  final List<Map<String, dynamic>> allDateOccurrences = [];
 
   final TextEditingController motifController = TextEditingController();
 
@@ -80,7 +80,17 @@ class _RdvParentPdState extends State<RdvParentPd> {
     }
   }
 
-  Future<int> creationrdv(int idParent, int idPedagogique, String date, String motif, String role, String timeStart, String timeEnd) async {
+  Future<int> creationrdv(
+    int idParent,
+    int idPedagogique,
+    String date,
+    String motif,
+    String role,
+    String timeStart,
+    String timeEnd,
+    int iddespo,
+    int idinterval,
+  ) async {
     try {
       final result = await RdvProvider().createPDRdv(
         idpd: idPedagogique,
@@ -90,6 +100,8 @@ class _RdvParentPdState extends State<RdvParentPd> {
         role: 'parent',
         timeStart: timeStart,
         timeEnd: timeEnd,
+        iddespo: iddespo,
+        idinterval: idinterval,
       );
       return result;
     } catch (e) {
@@ -98,6 +110,13 @@ class _RdvParentPdState extends State<RdvParentPd> {
       });
       return -1;
     }
+  }
+
+  List<Map<String, dynamic>> data = [];
+
+  Future<List<Map<String, dynamic>>> fetchData(int id) async {
+    data = await PdProvider().GetDispoV2(id);
+    return data;
   }
 
   Future<void> _onSelectPedagogique(int idPedagogique) async {
@@ -109,14 +128,6 @@ class _RdvParentPdState extends State<RdvParentPd> {
     setState(() {
       selectedPedagogique = pd is Map<String, dynamic> && pd.isNotEmpty ? pd : null;
       selectedPedagogiqueId = idPedagogique;
-      selectedDayIndex = null;
-      selectedSlotIndex = null;
-      availableDays.clear();
-      allSlots.clear();
-      filteredSlots.clear();
-      availableDates.clear();
-      allDateSlots.clear();
-      allDateOccurrences.clear();
     });
 
     await _fetchDisponibilite(idPedagogique);
@@ -126,36 +137,61 @@ class _RdvParentPdState extends State<RdvParentPd> {
     setState(() {
       isLoading = true;
       errorMessage = null;
+      availableDays.clear();
+      allSlots.clear();
+      filteredSlots.clear();
+      availableDates.clear();
+      allDateSlots.clear();
+      allDateOccurrences.clear();
+      selectedDayIndex = null;
+      selectedSlotIndex = null;
     });
 
     try {
-      final disponibilites = await PdProvider().GetDispoV2(idPedagogique);
+      if (idPedagogique <= 0) {
+        throw Exception('Id pédagogique introuvable');
+      }
+
+      debugPrint('Loading disponibilite for IdPd : $idPedagogique');
+      final disponibilites = await fetchData(idPedagogique);
+      debugPrint('Fetched disponibilites: $disponibilites');
+
       final slotKeys = <String>{};
 
       for (final item in disponibilites) {
         final jour = item['jour']?.toString().trim() ?? '';
-        final start = item['start']?.toString().trim() ?? '';
-        final end = item['end']?.toString().trim() ?? '';
+        final start = item['start']?.toString().trim() ?? item['heuredebut']?.toString().trim() ?? '';
+        final end = item['end']?.toString().trim() ?? item['heurefin']?.toString().trim() ?? '';
+        final dateValue = item['date']?.toString().trim() ?? item['value']?.toString().trim() ?? '';
+        final isAvailable = item['isAvailable'] is bool
+            ? item['isAvailable'] as bool
+            : item['available'] is bool
+                ? item['available'] as bool
+                : true;
 
-        if (jour.isEmpty || start.isEmpty || end.isEmpty) {
+        if (start.isEmpty || end.isEmpty) {
           continue;
         }
 
-        if (!availableDays.contains(jour)) {
+        if (jour.isNotEmpty && !availableDays.contains(jour)) {
           availableDays.add(jour);
         }
 
-        final key = '$jour-$start-$end';
-        if (!slotKeys.contains(key)) {
-          slotKeys.add(key);
+        final key = item['id']?.toString() ?? '$dateValue-$start-$end';
 
+        if (slotKeys.add(key)) {
           allSlots.add({
+            'id': item['id'],
             'jour': jour,
+            'date': dateValue,
             'start': start,
             'end': end,
             'time': item['time']?.toString().trim().isNotEmpty == true
-                ? item['time'].toString()
+                ? item['time']!.toString()
                 : '$start - $end',
+            'isAvailable': isAvailable,
+            'disponibiliteId': item['disponibiliteId'] ?? item['iddisponibilites'],
+            'intervalId': item['intervalId'] ?? item['id'],
           });
         }
       }
@@ -164,6 +200,7 @@ class _RdvParentPdState extends State<RdvParentPd> {
     } catch (e) {
       errorMessage = e.toString();
     } finally {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -191,9 +228,87 @@ class _RdvParentPdState extends State<RdvParentPd> {
     allDateOccurrences.clear();
     allDateSlots.clear();
 
-    final weekStart = _startOfWeek(DateTime.now());
-    final horizon = weekStart.add(const Duration(days: 41));
-    final weekdays = {
+    final start = _startOfWeek(DateTime.now());
+    final end = start.add(const Duration(days: 41));
+    final groupedSlots = <String, List<Map<String, dynamic>>>{};
+
+    for (final slot in allSlots) {
+      final rawDate = slot['date']?.toString().trim() ?? '';
+      final jour = slot['jour']?.toString().trim() ?? '';
+
+      if (rawDate.isNotEmpty) {
+        groupedSlots.putIfAbsent(rawDate, () => []).add(slot);
+        continue;
+      }
+
+      final weekday = _weekdayNumber(jour);
+      if (weekday == null) {
+        continue;
+      }
+
+      for (DateTime date = start; !date.isAfter(end); date = date.add(const Duration(days: 1))) {
+        if (date.weekday != weekday) {
+          continue;
+        }
+
+        final dateValue = _formatDateKey(date);
+        groupedSlots.putIfAbsent(dateValue, () => []).add(slot);
+      }
+    }
+
+    final sortedDates = groupedSlots.keys.toList()..sort();
+
+    for (final dateValue in sortedDates) {
+      final parsedDate = DateTime.tryParse(dateValue);
+      final label = parsedDate == null
+          ? dateValue
+          : '${_weekdayLabel(parsedDate)} ${parsedDate.day}/${parsedDate.month}';
+
+      allDateOccurrences.add({
+        'label': label,
+        'value': dateValue,
+        'jour': parsedDate == null ? 'Date' : _weekdayLabel(parsedDate),
+      });
+    }
+
+    for (final occurrence in allDateOccurrences) {
+      final dateValue = occurrence['value']!.toString();
+      final slotsForDate = groupedSlots[dateValue] ?? const [];
+      final seenKeys = <String>{};
+
+      for (final slot in slotsForDate) {
+        final slotKey = '${dateValue}-${slot['start']}-${slot['end']}-${slot['intervalId'] ?? slot['id'] ?? ''}';
+        if (!seenKeys.add(slotKey)) {
+          continue;
+        }
+
+        allDateSlots.add({
+          'label': occurrence['label']!,
+          'value': dateValue,
+          'jour': occurrence['jour']!,
+          'start': slot['start']!,
+          'end': slot['end']!,
+          'time': slot['time']!,
+          'isAvailable': slot['isAvailable'] ?? true,
+          'id': slot['id'],
+          'disponibiliteId': slot['disponibiliteId'] ?? slot['iddisponibilites'],
+          'intervalId': slot['intervalId'] ?? slot['id'],
+        });
+      }
+    }
+
+    allDateOccurrences.sort((a, b) => a['value']!.compareTo(b['value']!));
+    allDateSlots.sort((a, b) {
+      final d = a['value']!.compareTo(b['value']!);
+      if (d != 0) return d;
+      return a['start']!.compareTo(b['start']!);
+    });
+
+    _applyWeekFilter();
+  }
+
+  int? _weekdayNumber(String jour) {
+    const days = {
       'lundi': DateTime.monday,
       'mardi': DateTime.tuesday,
       'mercredi': DateTime.wednesday,
@@ -203,48 +318,20 @@ class _RdvParentPdState extends State<RdvParentPd> {
       'dimanche': DateTime.sunday,
     };
 
-    final slotKeys = <String>{};
-    for (final day in availableDays) {
-      final target = weekdays[day.toLowerCase()];
-      if (target == null) {
-        continue;
-      }
+    return days[jour.toLowerCase()];
+  }
 
-      for (DateTime date = weekStart; !date.isAfter(horizon); date = date.add(const Duration(days: 1))) {
-        if (date.weekday != target) {
-          continue;
-        }
-
-        final apiDate = _formatDateKey(date);
-        final label = '$day ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
-        allDateOccurrences.add({'label': label, 'value': apiDate, 'jour': day});
-
-        for (final slot in allSlots) {
-          if (slot['jour'] != day) continue;
-          final key = '$apiDate-${slot['start']}-${slot['end']}';
-          if (!slotKeys.contains(key)) {
-            slotKeys.add(key);
-            allDateSlots.add({
-              'label': label,
-              'value': apiDate,
-              'jour': day,
-              'start': slot['start']!,
-              'end': slot['end']!,
-              'time': slot['time']!,
-            });
-          }
-        }
-      }
-    }
-
-    allDateOccurrences.sort((a, b) => a['value']!.compareTo(b['value']!));
-    allDateSlots.sort((a, b) {
-      final date = a['value']!.compareTo(b['value']!);
-      if (date != 0) return date;
-      return a['start']!.compareTo(b['start']!);
-    });
-
-    _applyWeekFilter();
+  String _weekdayLabel(DateTime date) {
+    const weekdays = <String>[
+      'lundi',
+      'mardi',
+      'mercredi',
+      'jeudi',
+      'vendredi',
+      'samedi',
+      'dimanche',
+    ];
+    return weekdays[date.weekday - 1];
   }
 
   void _applyWeekFilter() {
@@ -259,9 +346,19 @@ class _RdvParentPdState extends State<RdvParentPd> {
 
     for (final date in allDateOccurrences) {
       final parsed = DateTime.tryParse(date['value']!);
-      if (parsed == null) continue;
-      if (selectedWeekOffset == 0 && parsed.isBefore(today)) continue;
-      if (parsed.isBefore(start) || parsed.isAfter(end)) continue;
+
+      if (parsed == null) {
+        continue;
+      }
+
+      if (selectedWeekOffset == 0 && parsed.isBefore(today)) {
+        continue;
+      }
+
+      if (parsed.isBefore(start) || parsed.isAfter(end)) {
+        continue;
+      }
+
       availableDates.add(date);
     }
 
@@ -269,7 +366,10 @@ class _RdvParentPdState extends State<RdvParentPd> {
   }
 
   void _changeWeek(int value) {
-    if (selectedWeekOffset + value < 0) return;
+    if (selectedWeekOffset + value < 0) {
+      return;
+    }
+
     setState(() {
       selectedWeekOffset += value;
       _applyWeekFilter();
@@ -279,6 +379,7 @@ class _RdvParentPdState extends State<RdvParentPd> {
   void _selectDate(int index) {
     final date = availableDates[index];
     final slots = allDateSlots.where((slot) => slot['value'] == date['value']).toList();
+
     setState(() {
       selectedDayIndex = index;
       selectedSlotIndex = null;
@@ -360,9 +461,19 @@ class _RdvParentPdState extends State<RdvParentPd> {
                   decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12)),
                   child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
                 )
+              else if (availableDates.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: const Text('Aucune disponibilité n\'a été trouvée pour ce profil.'),
+                )
               else ...[
                 SizedBox(
-                  height: 90,
+                  height: 92,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: availableDates.length,
@@ -372,7 +483,7 @@ class _RdvParentPdState extends State<RdvParentPd> {
                       return GestureDetector(
                         onTap: () => _selectDate(index),
                         child: Container(
-                          width: 130,
+                          width: 132,
                           margin: const EdgeInsets.only(right: 10),
                           decoration: BoxDecoration(
                             color: selected ? primary : Colors.white,
@@ -382,9 +493,22 @@ class _RdvParentPdState extends State<RdvParentPd> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(date['label']!, textAlign: TextAlign.center, style: TextStyle(color: selected ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
+                              Text(
+                                date['label']!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: selected ? Colors.white : Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               const SizedBox(height: 6),
-                              Text('Créneaux disponibles', style: TextStyle(color: selected ? Colors.white70 : Colors.grey, fontSize: 12)),
+                              Text(
+                                'Créneaux disponibles',
+                                style: TextStyle(
+                                  color: selected ? Colors.white70 : Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -392,26 +516,57 @@ class _RdvParentPdState extends State<RdvParentPd> {
                     },
                   ),
                 ),
-                const SizedBox(height: 25),
-                const Text('CRÉNEAUX DISPONIBLES', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 15),
+                const SizedBox(height: 18),
+                const Text(
+                  'Créneaux disponibles',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: filteredSlots.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 2.3, crossAxisSpacing: 10, mainAxisSpacing: 10),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 2.3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
                   itemBuilder: (context, index) {
                     final slot = filteredSlots[index];
                     final selected = selectedSlotIndex == index;
+                    final isAvailable = slot['isAvailable'] == true;
                     return GestureDetector(
-                      onTap: selectedDayIndex != null ? () => _selectSlot(index) : null,
+                      onTap: (isAvailable && selectedDayIndex != null) ? () => _selectSlot(index) : null,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: selected ? primary : Colors.white,
+                          color: selected
+                              ? primary
+                              : isAvailable
+                                  ? Colors.white
+                                  : Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: selected ? Colors.blue : Colors.grey.shade300),
+                          border: Border.all(
+                            color: selected
+                                ? Colors.blue
+                                : isAvailable
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade400,
+                          ),
                         ),
-                        child: Center(child: Text(slot['time']!, style: TextStyle(color: selected ? Colors.white : Colors.black, fontWeight: FontWeight.w600))),
+                        child: Center(
+                          child: Text(
+                            '${slot['start'] ?? ''} - ${slot['end'] ?? ''}',
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white
+                                  : isAvailable
+                                      ? Colors.black
+                                      : Colors.grey.shade600,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -465,7 +620,17 @@ class _RdvParentPdState extends State<RdvParentPd> {
                           }
 
                           final messenger = ScaffoldMessenger.of(context);
-                          final result = await creationrdv(idParent, selectedPedagogiqueId!, dateValue, motif, 'parent', slot['start']!, slot['end']!);
+                          final result = await creationrdv(
+                            idParent,
+                            selectedPedagogiqueId!,
+                            dateValue,
+                            motif,
+                            'parent',
+                            slot['start']!,
+                            slot['end']!,
+                            slot['disponibiliteId'] ?? slot['iddisponibilites'] ?? slot['id'] ?? 0,
+                            slot['intervalId'] ?? slot['id'] ?? 0,
+                          );
 
                           if (!mounted) return;
 

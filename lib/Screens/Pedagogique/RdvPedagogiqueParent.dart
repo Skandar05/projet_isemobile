@@ -232,6 +232,8 @@ class _RdvPdParentState extends State<RdvPdParent> {
                 ? item['time']!.toString()
                 : '$start - $end',
             'isAvailable': isAvailable,
+            'disponibiliteId': item['disponibiliteId'] ?? item['iddisponibilites'],
+            'intervalId': item['intervalId'] ?? item['id'],
           });
         }
       }
@@ -317,7 +319,7 @@ class _RdvPdParentState extends State<RdvPdParent> {
       final seenKeys = <String>{};
 
       for (final slot in slotsForDate) {
-        final slotKey = '${dateValue}-${slot['start']}-${slot['end']}-${slot['id'] ?? ''}';
+        final slotKey = '${dateValue}-${slot['start']}-${slot['end']}-${slot['intervalId'] ?? slot['id'] ?? ''}';
         if (!seenKeys.add(slotKey)) {
           continue;
         }
@@ -331,6 +333,8 @@ class _RdvPdParentState extends State<RdvPdParent> {
           'time': slot['time']!,
           'isAvailable': slot['isAvailable'] ?? true,
           'id': slot['id'],
+          'disponibiliteId': slot['disponibiliteId'] ?? slot['iddisponibilites'],
+          'intervalId': slot['intervalId'] ?? slot['id'],
         });
       }
     }
@@ -787,6 +791,8 @@ motif=$motif
       timeEnd: slot['end']!,
       motif: motif,
       role: 'pedagogique',
+      iddespo: slot['disponibiliteId'] ?? slot['iddisponibilites'] ?? slot['id'] ?? 0,
+      idinterval: slot['intervalId'] ?? slot['id'] ?? 0,
     );
 
     if (!mounted) return;

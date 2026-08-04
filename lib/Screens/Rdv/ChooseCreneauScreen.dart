@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test/providers/EnseignantProvider.dart';
 import 'package:test/providers/Rdv_provider.dart';
+import 'package:test/providers/disponibilite_provider.dart';
 import 'package:test/Screens/Widgets/custom_app_bar.dart';
 import '../parent/home_Parent.dart';
 import '../Enseignant/home_Enseignant.dart';
@@ -373,37 +374,6 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
     _updateCanSend();
   }
 
-  List<Map<String, String>> _generateSlots(String start, String end, {int slotMinutes = 15}) {
-    final slots = <Map<String, String>>[];
-    final startParts = start.split(':');
-    final endParts = end.split(':');
-
-    if (startParts.length != 2 || endParts.length != 2) return slots;
-
-    final startH = int.tryParse(startParts[0]) ?? 0;
-    final startM = int.tryParse(startParts[1]) ?? 0;
-    final endH = int.tryParse(endParts[0]) ?? 0;
-    final endM = int.tryParse(endParts[1]) ?? 0;
-
-    final totalStart = startH * 60 + startM;
-    final totalEnd = endH * 60 + endM;
-
-    if (totalEnd <= totalStart) return slots;
-
-    for (var current = totalStart; current + slotMinutes <= totalEnd; current += slotMinutes) {
-      final slotEnd = current + slotMinutes;
-      final slotStartStr = '${(current ~/ 60).toString().padLeft(2, '0')}:${(current % 60).toString().padLeft(2, '0')}';
-      final slotEndStr = '${(slotEnd ~/ 60).toString().padLeft(2, '0')}:${(slotEnd % 60).toString().padLeft(2, '0')}';
-      slots.add({
-        'start': slotStartStr,
-        'end': slotEndStr,
-        'time': '$slotStartStr - $slotEndStr',
-      });
-    }
-
-    return slots;
-  }
-
   Future<void> fetchDisponibilites() async {
     setState(() {
       isLoading = true;
@@ -445,40 +415,29 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final slotKeys = <String>{};
+        final normalizedSlots = normalizeTeacherDisponibilitePayload(data);
 
-        if (data is List) {
-          for (final item in data) {
-            if (item is Map<String, dynamic>) {
-              final day = item['jour']?.toString() ?? '';
-              if (day.isEmpty) continue;
+        for (final slot in normalizedSlots) {
+          final day = slot['jour']?.toString() ?? '';
+          if (day.isEmpty) continue;
 
-              if (!availableDays.contains(day)) {
-                availableDays.add(day);
-              }
+          if (!availableDays.contains(day)) {
+            availableDays.add(day);
+          }
 
-              final heureDebut = (item['heure_debut']?.toString() ?? item['heuredebut']?.toString() ?? '').trim();
-              final heureFin = (item['heure_fin']?.toString() ?? item['heurefin']?.toString() ?? '').trim();
-              final dispoDebut = (item['disponibilite_debut']?.toString() ?? '').trim();
-              final dispoFin = (item['disponibilite_fin']?.toString() ?? '').trim();
+          final startTime = slot['start']?.toString() ?? '';
+          final endTime = slot['end']?.toString() ?? '';
 
-              final startTime = heureDebut.isNotEmpty ? heureDebut : dispoDebut;
-              final endTime = heureFin.isNotEmpty ? heureFin : dispoFin;
-
-              if (startTime.isNotEmpty && endTime.isNotEmpty) {
-                final subSlots = _generateSlots(startTime, endTime);
-                for (final slot in subSlots) {
-                  final slotKey = '$day|${slot['start']}|${slot['end']}';
-                  if (!slotKeys.contains(slotKey)) {
-                    slotKeys.add(slotKey);
-                    allSlots.add({
-                      'jour': day,
-                      'start': slot['start']!,
-                      'end': slot['end']!,
-                      'time': slot['time']!,
-                    });
-                  }
-                }
-              }
+          if (startTime.isNotEmpty && endTime.isNotEmpty) {
+            final slotKey = '$day|$startTime|$endTime';
+            if (!slotKeys.contains(slotKey)) {
+              slotKeys.add(slotKey);
+              allSlots.add({
+                'jour': day,
+                'start': startTime,
+                'end': endTime,
+                'time': slot['time']?.toString() ?? '$startTime - $endTime',
+              });
             }
           }
         }

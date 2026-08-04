@@ -423,6 +423,8 @@ Future<bool> createRDV({
     required String timeEnd,
     required String motif,
     required String role,
+    required int iddespo,
+    required int idinterval,
     })async{
     int Statecode= 500;
     
@@ -453,6 +455,7 @@ Future<bool> createRDV({
       Statecode = response.statusCode;
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        await updateAvailability(idinterval, iddespo);
         debugPrint('RDV created successfully by PD');
       } else {
         debugPrint('Failed to create RDV by PD: ${response.statusCode}');
@@ -490,18 +493,28 @@ Future<bool> createRDV({
     return pedagogiques;
   }
 
+  Future<void>updateAvailability(int idinterval, int iddesponibilite) async {
+    debugPrint("iddispo:$idinterval id interval: $iddesponibilite");
+    try{
+      final response = await http.put(
+        Uri.parse('$_baseUrl/api/Pedagogique/disponibilites/$iddesponibilite/interval/$idinterval'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"isAvailable": false}),
+      );
 
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('Availability updated successfully');
+      } else {
+        debugPrint('Failed to update availability: ${response.statusCode}');
+      }
 
-
-
-
-
-
-
-
-
-
+    }catch(e){
+      debugPrint('Error updating availability: $e');
+    }
+  }
 
 
 
 }
+
+

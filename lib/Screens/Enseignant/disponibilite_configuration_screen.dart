@@ -484,11 +484,7 @@ await showModalBottomSheet<void>(
                                   };
 
                                   if (isEditing) {
-                                    success = await provider.updateDisponibilite(
-                                      _teacherId!,
-                                      disponibilite['id'],
-                                      disponibiliteData,
-                                    );
+                                    
                                   } else {
                                     success = await provider.addDisponibilite(
                                       _teacherId!,
@@ -662,12 +658,7 @@ await showModalBottomSheet<void>(
                 ],
               ),
             ),
-            IconButton(
-              onPressed: () =>
-                  _openDisponibiliteForm(disponibilite: disponibilite),
-              icon: const Icon(Icons.edit_outlined),
-              color: const Color(0xff1F4B8F),
-            ),
+            
             IconButton(
               onPressed: () => _confirmDelete(disponibilite),
               icon: const Icon(Icons.delete_outline),

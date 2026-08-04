@@ -43,6 +43,9 @@ List<Map<String, dynamic>> normalizeDisponibilitePayload(dynamic decoded) {
                     ? day['isAvailable'] as bool
                     : true;
 
+        final disponibiliteId = day['iddisponibilites'] ?? day['idDisponibilite'] ?? day['idDisponibilites'] ?? day['id'];
+        final intervalId = intervalMap['id'] ?? intervalMap['intervalId'] ?? intervalMap['idinterval'];
+
         flattened.add({
           ...day,
           ...intervalMap,
@@ -52,6 +55,10 @@ List<Map<String, dynamic>> normalizeDisponibilitePayload(dynamic decoded) {
           'end': end,
           'time': start.isNotEmpty && end.isNotEmpty ? '$start - $end' : intervalMap['time']?.toString() ?? '',
           'isAvailable': isAvailable,
+          'iddisponibilites': disponibiliteId,
+          'disponibiliteId': disponibiliteId,
+          'intervalId': intervalId,
+          'id': intervalId,
         });
       }
       continue;
@@ -65,6 +72,9 @@ List<Map<String, dynamic>> normalizeDisponibilitePayload(dynamic decoded) {
             ? day['available'] as bool
             : true;
 
+    final disponibiliteId = day['iddisponibilites'] ?? day['idDisponibilite'] ?? day['idDisponibilites'] ?? day['id'];
+    final intervalId = day['intervalId'] ?? day['idinterval'] ?? day['id'];
+
     flattened.add({
       ...day,
       'jour': day['jour']?.toString() ?? '',
@@ -73,6 +83,10 @@ List<Map<String, dynamic>> normalizeDisponibilitePayload(dynamic decoded) {
       'end': end,
       'time': start.isNotEmpty && end.isNotEmpty ? '$start - $end' : day['time']?.toString() ?? '',
       'isAvailable': isAvailable,
+      'iddisponibilites': disponibiliteId,
+      'disponibiliteId': disponibiliteId,
+      'intervalId': intervalId,
+      'id': intervalId,
     });
   }
 
@@ -80,9 +94,13 @@ List<Map<String, dynamic>> normalizeDisponibilitePayload(dynamic decoded) {
 }
 
 class PdProvider extends ChangeNotifier {
-  final http.Client _client = http.Client();
+  PdProvider({http.Client? client, String? baseUrl}) {
+    _client = client ?? http.Client();
+    _baseUrl = baseUrl ?? dotenv.env['BACKEND_URL']?.trim();
+  }
 
-  String? get _baseUrl => dotenv.env['BACKEND_URL']?.trim();
+  late http.Client _client;
+  late String? _baseUrl;
 
   @override
   void dispose() {
@@ -373,27 +391,30 @@ Future<void>updatedisponibility(int idDisponibilite, String debut, String fin, S
   }
 }
 
-Future<void> deletedisponibility(int idDisponibilite) async {
+Future<void> deletedisponibility(dynamic iddisponibilites) async {
   final baseUrl = _baseUrl;
 
   if (baseUrl == null || baseUrl.isEmpty) {
     throw Exception('BACKEND_URL is not configured');
   }
 
+  final deleteId = iddisponibilites?.toString().trim();
+  if (deleteId == null || deleteId.isEmpty) {
+    throw Exception('Availability id is missing');
+  }
+
   final response = await _client.delete(
-    Uri.parse('$baseUrl/api/Pedagogique/disponibilites/$idDisponibilite'),
+    Uri.parse('$baseUrl/api/Pedagogique/disponibilites/$deleteId'),
     headers: {
       'Content-Type': 'application/json',
     },
   );
 
-  if (response.statusCode != 200) {
+  if (response.statusCode != 200 && response.statusCode != 201 && response.statusCode != 204) {
     throw Exception(
       'Failed to delete disponibilite (${response.statusCode})',
     );
   }
-
-
 }
 
 Future<List<Map<String, dynamic>>> GetPdRdv(int IdPd) async {
