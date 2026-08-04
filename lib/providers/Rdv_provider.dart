@@ -381,16 +381,19 @@ Future<bool> createRDV({
     required String timeStart,
     required String timeEnd,
     required String motif,
+    required int idstudent
   }) async {
+    
     final resolvedParentId = await resolveParentId(idParent);
+    final int idresponsable = await getresponsableeleve(idstudent);
     final effectiveParentId = resolvedParentId > 0 ? resolvedParentId : idParent;
-  debugPrint('Creating RDV for teacher $idTeacher with parent $effectiveParentId on $date from $timeStart to $timeEnd for motif: $motif');
+  
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/rendezvous/enseignant/$idTeacher/7'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "id_parent": effectiveParentId,
+          "id_parent": idresponsable,
           "id_personne": idParent,
           "date": date,
           "heureDebut": timeStart,
@@ -425,14 +428,18 @@ Future<bool> createRDV({
     required String role,
     required int iddespo,
     required int idinterval,
+    
+
     })async{
     int Statecode= 500;
+    
     
     int resolvedParentId = await resolveParentId(idParent);
 
     if (resolvedParentId <= 0) {
       resolvedParentId =idParent;
     }
+   
     debugPrint('Response body: Creating RDV for pedagogical $idpd with parent $resolvedParentId on $date from $timeStart to $timeEnd for motif: $motif');
     try {
       final response = await http.post(
@@ -512,8 +519,28 @@ Future<bool> createRDV({
       debugPrint('Error updating availability: $e');
     }
   }
+  Future<int>getresponsableeleve(int idstudent)async{
+    int idresp=0;
+    debugPrint("idstudent:$idstudent");
+    try{
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/eleve/$idstudent/responsable-rendezvous'),
+        headers: {'Content-Type': 'application/json'},
+      );
 
-
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+        if(data is Map<String,dynamic>){
+          idresp = data['idParent'] ?? 0;
+        }
+      }else{
+        debugPrint('Failed to get responsable eleve: ${response.statusCode}');
+      }
+    }catch(e){
+      debugPrint('Error getting responsable eleve: $e');
+    }
+    return idresp;
+  }
 
 }
 

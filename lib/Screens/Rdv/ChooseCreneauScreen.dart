@@ -66,6 +66,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
   String _selectedTeacherClassName = '';
   String _selectedTeacherParentName = '';
   String _selectedTeacherParentId = '';
+  int idstudent = 0;
 
   @override
   void initState() {
@@ -231,6 +232,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
     final fullName = '$lastName $firstName'.trim();
     final className = student['className']?.toString() ?? '';
     final parents = (student['parents'] as List<dynamic>? ?? []);
+    idstudent = int.tryParse(studentId) ?? 0;
+    
 
     String resolvedParentId = '';
     String resolvedParentName = '';
@@ -1179,6 +1182,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                                 timeStart: selectedSlot['start'] ?? '',
                                 timeEnd: selectedSlot['end'] ?? '',
                                 motif: _motifController.text.trim(),
+                                idstudent: idstudent,
                               );
                             } else {
                               final fallback = prefs.getInt('idPersonne') ?? 0;
@@ -1190,6 +1194,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                                   timeStart: selectedSlot['start'] ?? '',
                                   timeEnd: selectedSlot['end'] ?? '',
                                   motif: _motifController.text.trim(),
+                                  idstudent: idstudent,
                                 );
                               }
                             }
