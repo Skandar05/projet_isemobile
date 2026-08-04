@@ -579,7 +579,7 @@ await showModalBottomSheet<void>(
 
       if (widget.isPedagogique) {
         try {
-          await context.read<PdProvider>().deletedisponibility(disponibilite['id']);
+          await context.read<PdProvider>().deletedisponibility(disponibilite['iddisponibilites']);
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Disponibilité supprimée.')),
