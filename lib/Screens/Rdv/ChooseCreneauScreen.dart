@@ -41,12 +41,12 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
   int debugResolvedTeacherId = 0;
 
   final List<String> availableDays = [];
-  final List<Map<String, String>> allSlots = [];
-  final List<Map<String, String>> filteredSlots = [];
-  final List<Map<String, String>> allDateOccurrences = [];
-  final List<Map<String, String>> availableDates = [];
-  final List<Map<String, String>> allDateSlots = [];
-  final List<Map<String, String>> filteredDateSlots = [];
+  final List<Map<String, dynamic>> allSlots = [];
+  final List<Map<String, dynamic>> filteredSlots = [];
+  final List<Map<String, dynamic>> allDateOccurrences = [];
+  final List<Map<String, dynamic>> availableDates = [];
+  final List<Map<String, dynamic>> allDateSlots = [];
+  final List<Map<String, dynamic>> filteredDateSlots = [];
   String nomparent = '';
   final TextEditingController _motifController = TextEditingController();
   bool _canSend = false;
@@ -427,13 +427,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
           
           if (day.isEmpty) continue;
 
-            // respect availability flag from payload: skip intervals not available
-            final rawAvail = slot['isAvailable'];
-            final bool slotAvailable = (rawAvail is bool && rawAvail == true) ||
-              (rawAvail is int && rawAvail == 1) ||
-              (rawAvail is String && (rawAvail == '1' || rawAvail.toLowerCase() == 'true'));
-            if (!slotAvailable) continue;
-
+          // Always include the day even if some intervals are unavailable.
           if (!availableDays.contains(day)) {
             availableDays.add(day);
           }
@@ -456,7 +450,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                 'time': slot['time']?.toString() ?? '$startTime - $endTime',
                 'iddisponibilites': slot['iddisponibilites']?.toString() ?? '',
                 'id': slot['id']?.toString() ?? '',
-                'isAvailable': isAvailable.toString(),
+                'isAvailable': isAvailable,
               });
             }
           }
@@ -512,7 +506,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
         parsedDate.day == now.day;
   }
 
-  bool _isFutureSlot(Map<String, String> slot, String? dateValue) {
+  bool _isFutureSlot(Map<String, dynamic> slot, String? dateValue) {
     if (!_isTodayDate(dateValue)) return true;
 
     final slotStart = slot['start'] ?? '';
@@ -527,7 +521,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
     return slotDateTime.isAfter(now);
   }
 
-  List<Map<String, String>> _slotsForDateEntry(Map<String, String> dateEntry) {
+  List<Map<String, dynamic>> _slotsForDateEntry(Map<String, dynamic> dateEntry) {
     final label = dateEntry['label'] ?? '';
 
     return allDateSlots.where((slot) {
@@ -650,7 +644,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
               // include ids from the original slot entry so filteredSlots carry them
               'iddisponibilites': slot['iddisponibilites']?.toString() ?? slot['iddisponibilites'] ?? '',
               'id': slot['id']?.toString() ?? slot['id'] ?? '',
-              'isAvailable': isAvailable2.toString(),
+              'isAvailable': isAvailable2,
             });
           }
         }
@@ -1071,15 +1065,20 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                           final slot = filteredSlots[index];
                           final isSelected = selectedSlotIndex == index;
 
+                          // compute availability once so we can style the container
+                          final dynamic rawAvail = slot['isAvailable'];
+                          final bool available = (rawAvail is bool && rawAvail == true) ||
+                              (rawAvail is int && rawAvail == 1) ||
+                              (rawAvail is String && (rawAvail == '1' || rawAvail.toLowerCase() == 'true'));
+
+                          final containerColor = isSelected
+                              ? const Color(0xff1F4B8F)
+                              : (available ? Colors.white : Colors.grey.shade200);
+                          final borderColor = isSelected ? Colors.blue : (available ? Colors.grey.shade300 : Colors.grey.shade500);
+
                           return GestureDetector(
                             onTap: selectedDayIndex != null
                                 ? () {
-                                    final slot = filteredSlots[index];
-                                    final dynamic rawAvail = slot['isAvailable'];
-                                    final bool available = (rawAvail is bool && rawAvail == true) ||
-                                        (rawAvail is int && rawAvail == 1) ||
-                                        (rawAvail is String &&
-                                            (rawAvail == '1' || rawAvail.toLowerCase() == 'true'));
                                     if (!available) return; // don't allow selecting unavailable slots
 
                                     setState(() {
@@ -1100,23 +1099,18 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                                 : null,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xff1F4B8F) : Colors.white,
+                                color: containerColor,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: isSelected ? Colors.blue : Colors.grey.shade300,
+                                  color: borderColor,
                                 ),
                               ),
                               child: Center(
                                 child: Builder(
                                   builder: (_) {
-                                    final dynamic rawAvail = slot['isAvailable'];
-                                    final bool available = (rawAvail is bool && rawAvail == true) ||
-                                        (rawAvail is int && rawAvail == 1) ||
-                                        (rawAvail is String &&
-                                            (rawAvail == '1' || rawAvail.toLowerCase() == 'true'));
                                     final textColor = isSelected
                                         ? Colors.white
-                                        : (available ? Colors.black : Colors.grey);
+                                        : (available ? Colors.black : Colors.grey.shade500);
 
                                     return Text(
                                       slot['time'] ?? '',
