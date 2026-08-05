@@ -219,13 +219,15 @@ Future<bool> createRDV({
   required String motif,
   String? heureDebut,
   String? heureFin,
+  required int iddespo,
+  required int idinterval,
 }) async {
   final debutTemp = (heureDebut ?? temp.split('-')[0]).trim();
   final finTemp = (heureFin ?? temp.split('-')[1]).trim();
   final resolvedParentId = await resolveParentId(idParent);
   final effectiveParentId = resolvedParentId > 0 ? resolvedParentId : idParent;
   final String dmd = 'parent';
-  
+  debugPrint('Creating RDV for parent $effectiveParentId with teacher $idEnseignant on $date from $debutTemp to $finTemp for motif: $motif, iddespo: $iddespo, idinterval: $idinterval');
   try {
     final response = await http.post(
       Uri.parse('$_baseUrl/api/rendezvous/$effectiveParentId/7'),
@@ -240,7 +242,7 @@ Future<bool> createRDV({
       }),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
-      debugPrint('RDV created successfully');
+       await updateAvailabilityTeacher(idinterval, iddespo);
       return true;
     } else {
       debugPrint('Failed to create RDV: ${response.statusCode}');
@@ -381,12 +383,15 @@ Future<bool> createRDV({
     required String timeStart,
     required String timeEnd,
     required String motif,
-    required int idstudent
+    required int idstudent,
+    required int iddespo,
+    required int idinterval,
   }) async {
     
     final resolvedParentId = await resolveParentId(idParent);
     final int idresponsable = await getresponsableeleve(idstudent);
     final effectiveParentId = resolvedParentId > 0 ? resolvedParentId : idParent;
+    debugPrint('Creating RDV for teacher $idTeacher with parent $idresponsable on $date from $timeStart to $timeEnd for motif: $motif, iddespo: $iddespo, idinterval: $idinterval');
   
     try {
       final response = await http.post(
@@ -404,7 +409,7 @@ Future<bool> createRDV({
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        debugPrint('RDV created successfully by teacher');
+        await updateAvailabilityTeacher(idinterval, iddespo);
         return true;
       } else {
         debugPrint('Failed to create RDV by teacher: ${response.statusCode}');
@@ -519,6 +524,30 @@ Future<bool> createRDV({
       debugPrint('Error updating availability: $e');
     }
   }
+
+
+  Future<void>updateAvailabilityTeacher(int idinterval, int iddesponibilite) async {
+    debugPrint("iddispo:$idinterval id interval: $iddesponibilite");
+    try{
+      final response = await http.put(
+        Uri.parse('$_baseUrl/api/enseignant/disponibilites/$iddesponibilite/interval/$idinterval'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"isAvailable": false}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('Availability updated successfully');
+      } else {
+        debugPrint('Failed to update availability: ${response.statusCode}');
+      }
+
+    }catch(e){
+      debugPrint('Error updating availability: $e');
+    }
+  }
+
+
+
   Future<int>getresponsableeleve(int idstudent)async{
     int idresp=0;
     debugPrint("idstudent:$idstudent");

@@ -17,9 +17,6 @@ List<Map<String, dynamic>> normalizeTeacherDisponibilitePayload(dynamic decoded)
     items = decoded;
   }
 
-  if (items is! List) {
-    return [];
-  }
 
   final flattened = <Map<String, dynamic>>[];
 
@@ -65,6 +62,9 @@ List<Map<String, dynamic>> normalizeTeacherDisponibilitePayload(dynamic decoded)
           'end': end,
           'time': start.isNotEmpty && end.isNotEmpty ? '$start - $end' : '',
           'isAvailable': isAvailable,
+          // day-level availability id (parent) vs interval id (child)
+          'iddisponibilites': day['iddisponibilites']?.toString() ?? day['id']?.toString() ?? day['idDisponibilite']?.toString() ?? '',
+          'id': intervalMap['id']?.toString() ?? intervalMap['iddisponibilites']?.toString() ?? intervalMap['idDisponibilite']?.toString() ?? '',
         });
       }
       continue;
@@ -94,6 +94,9 @@ List<Map<String, dynamic>> normalizeTeacherDisponibilitePayload(dynamic decoded)
       'end': end,
       'time': start.isNotEmpty && end.isNotEmpty ? '$start - $end' : '',
       'isAvailable': isAvailable,
+      // no separate intervals: both ids come from day-level
+      'iddisponibilites': day['iddisponibilites']?.toString() ?? day['id']?.toString() ?? day['idDisponibilite']?.toString() ?? '',
+      'id': day['id']?.toString() ?? day['iddisponibilites']?.toString() ?? day['idDisponibilite']?.toString() ?? '',
     });
   }
 
@@ -158,9 +161,7 @@ class DisponibiliteProvider extends ChangeNotifier {
       items = decoded;
     }
 
-    if (items is! List) {
-      return [];
-    }
+
 
     final normalized = <String, Map<String, dynamic>>{};
 
@@ -293,39 +294,7 @@ class DisponibiliteProvider extends ChangeNotifier {
     }
   }
 
-/*   Future<bool> updateDisponibilite(
-    int idTeacher,
-    dynamic disponibiliteId,
-    Map<String, dynamic> updatedDisponibilite,
-  ) async {
-    try {
-      final baseUrl = _baseUrl?.trim();
-      if (baseUrl == null || baseUrl.isEmpty) {
-        errorMessage = 'BACKEND_URL is not configured';
-        notifyListeners();
-        return false;
-      }
 
-      final response = await _client.put(
-        Uri.parse('$baseUrl/api/disponibilites/$disponibiliteId'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(updatedDisponibilite),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        await loadDisponibilites(idTeacher);
-        return true;
-      }
-
-      errorMessage = 'Erreur lors de la modification de la disponibilité.';
-      notifyListeners();
-      return false;
-    } catch (e) {
-      errorMessage = 'Erreur réseau lors de la modification.';
-      notifyListeners();
-      return false;
-    }
-  } */
 
   Future<bool> deleteDisponibilite(
     int idTeacher,
@@ -365,4 +334,6 @@ class DisponibiliteProvider extends ChangeNotifier {
       return false;
     }
   }
+
+
 }

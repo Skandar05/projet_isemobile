@@ -67,7 +67,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
   String _selectedTeacherParentName = '';
   String _selectedTeacherParentId = '';
   int idstudent = 0;
-
+  String iddispo = '';
+  String idinterval = '';
   @override
   void initState() {
     super.initState();
@@ -414,6 +415,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
         // expose debug info
         debugRawResponse = response.body;
         debugResolvedTeacherId = teacherId;
+        debugPrint('Raw disponibilite response: ${debugRawResponse}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -422,6 +424,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
 
         for (final slot in normalizedSlots) {
           final day = slot['jour']?.toString() ?? '';
+          
           if (day.isEmpty) continue;
 
           if (!availableDays.contains(day)) {
@@ -440,16 +443,15 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                 'start': startTime,
                 'end': endTime,
                 'time': slot['time']?.toString() ?? '$startTime - $endTime',
+                'iddisponibilites': slot['iddisponibilites']?.toString() ?? '',
+                'id': slot['id']?.toString() ?? '',
+                
               });
             }
           }
         }
 
         _buildCalendarOccurrences();
-
-        debugPrint('fetchDisponibilites: days=$availableDays');
-        debugPrint('fetchDisponibilites: slots=$allSlots');
-        debugPrint('fetchDisponibilites: dateSlots=$allDateSlots');
 
         if (availableDays.isEmpty) {
           errorMessage = 'Aucun jour disponible trouvé.';
@@ -629,6 +631,9 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
               'start': slot['start']!,
               'end': slot['end']!,
               'time': slot['time']!,
+              // include ids from the original slot entry so filteredSlots carry them
+              'iddisponibilites': slot['iddisponibilites']?.toString() ?? slot['iddisponibilites'] ?? '',
+              'id': slot['id']?.toString() ?? slot['id'] ?? '',
             });
           }
         }
@@ -658,7 +663,16 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
       filteredSlots
         ..clear()
         ..addAll(slotsForDate);
+      // store selected date immediately for debugging / UI
+      selectedDateDisplay = dateEntry['label'] ?? '';
+      selectedDateValue = dateEntry['value'] ?? '';
+      // reset any previously chosen slot/time when date changes
+      selectedTimeValue = '';
+      iddispo = '';
+      idinterval = '';
     });
+
+    debugPrint('Selected date: $selectedDateDisplay ($selectedDateValue)');
 
     _updateCanSend();
   }
@@ -1041,9 +1055,20 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                             return GestureDetector(
                               onTap: selectedDayIndex != null
                                   ? () {
+                                      final slot = filteredSlots[index];
                                       setState(() {
                                         selectedSlotIndex = index;
+                                        // capture selected time and ids immediately
+                                        selectedTimeValue = slot['time'] ?? '';
+                                        iddispo = slot['iddisponibilites']?.toString() ?? '';
+                                        idinterval = slot['id']?.toString() ?? '';
                                       });
+
+                                      debugPrint('Selected date: $selectedDateDisplay ($selectedDateValue)');
+                                      debugPrint('Selected slot time: $selectedTimeValue');
+                                      debugPrint('Selected iddispo: $iddispo');
+                                      debugPrint('Selected idinterval: $idinterval');
+
                                       _updateCanSend();
                                     }
                                   : null,
@@ -1157,6 +1182,10 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                           await prefs.setString('selectedTimeValue', selectedSlot['time'] ?? '');
                           await prefs.setString('selectedTimeStart', selectedSlot['start'] ?? '');
                           await prefs.setString('selectedTimeEnd', selectedSlot['end'] ?? '');
+                          iddispo = selectedSlot['iddisponibilites']?.toString() ?? '';
+                          idinterval = selectedSlot['id']?.toString() ?? '';
+                          debugPrint('Selected iddispo: $iddispo');
+                          debugPrint('Selected idinterval: $idinterval');
 
                           if (!context.mounted) {
                             return;
@@ -1183,6 +1212,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                                 timeEnd: selectedSlot['end'] ?? '',
                                 motif: _motifController.text.trim(),
                                 idstudent: idstudent,
+                                iddespo: iddispo.isNotEmpty ? int.tryParse(iddispo) ?? 0 : 0,
+                                idinterval: idinterval.isNotEmpty ? int.tryParse(idinterval) ?? 0 : 0
                               );
                             } else {
                               final fallback = prefs.getInt('idPersonne') ?? 0;
@@ -1195,6 +1226,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                                   timeEnd: selectedSlot['end'] ?? '',
                                   motif: _motifController.text.trim(),
                                   idstudent: idstudent,
+                                  iddespo: iddispo.isNotEmpty ? int.tryParse(iddispo) ?? 0 : 0,
+                                  idinterval: idinterval.isNotEmpty ? int.tryParse(idinterval) ?? 0 : 0
                                 );
                               }
                             }
@@ -1207,6 +1240,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                               motif: _motifController.text.trim(),
                               heureDebut: selectedSlot['start'] ?? '',
                               heureFin: selectedSlot['end'] ?? '',
+                              iddespo: iddispo.isNotEmpty ? int.tryParse(iddispo) ?? 0 : 0,
+                              idinterval: idinterval.isNotEmpty ? int.tryParse(idinterval) ?? 0 : 0
                             );
                           }
 
