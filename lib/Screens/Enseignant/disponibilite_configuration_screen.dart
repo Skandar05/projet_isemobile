@@ -710,6 +710,11 @@ await showModalBottomSheet<void>(
         child: CustomAppBar(
           interfacePage: widget.isPedagogique ? const HomePD() : const HomeEnseignant(),
           title: "Configuration des disponibilités",
+          titleStyle: const TextStyle(
+          fontSize: 23,
+          fontWeight: FontWeight.w600,
+          color: Colors.black,
+          ),
           subtitle: "",
           showBackButton: true,
         ),

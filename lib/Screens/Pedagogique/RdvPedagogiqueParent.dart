@@ -454,8 +454,8 @@ class _RdvPdParentState extends State<RdvPdParent> {
       backgroundColor: const Color(0xffF5F7FB),
       appBar: CustomAppBar(
         interfacePage: HomePD(),
-        title: 'Rendez-vous pédagogique',
-        subtitle: 'Créer un rendez-vous avec un élève',
+        title: 'Créer un rendez-vous',
+        subtitle: 'Remplissez les informations du rendez-vous.',
         showBackButton: true,
       ),
       body: SafeArea(

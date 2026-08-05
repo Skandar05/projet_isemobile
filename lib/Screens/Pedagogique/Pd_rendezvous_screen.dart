@@ -892,8 +892,8 @@ Widget build(BuildContext context) {
 
     appBar: CustomAppBar(
       interfacePage: HomePD(),
-      title: "Dashboard pédagogique",
-      subtitle: "Créer un rendez-vous pédagogique",
+      title: "Espace pédagogique",
+      subtitle: "Gère les rendez-vous ",
       showBackButton: true,
     ),
 
@@ -1083,6 +1083,13 @@ Widget build(BuildContext context) {
                             final rdv = _visibleRdvsForCurrentSelection()[index];
                             final isParent = _isParentRequest(rdv);
                             final hasPedagogiqueOwner = _hasPedagogiqueOwner(rdv);
+                            final receiverName = _receiverName(rdv).toLowerCase();
+                            final isParentToPedagogique = isParent && (
+                              hasPedagogiqueOwner ||
+                              receiverName.contains('pédagogique') ||
+                              receiverName.contains('pedagogique') ||
+                              receiverName.contains('pd')
+                            );
                             final isResolved = _isResolvedRdv(rdv);
                             final displaySubject = _displaySubject(rdv);
                             final displayDate = _displayDate(rdv);
@@ -1108,6 +1115,7 @@ Widget build(BuildContext context) {
                               fromName: _senderName(rdv),
                               toName: _receiverName(rdv),
                               demandeurRole: rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '',
+                              useDemandeurRoleOnly: true,
                               subject: displaySubject,
                               duration: _formatDuration(startTime, endTime),
                               date: displayDate.isNotEmpty ? displayDate : 'Date à confirmer',

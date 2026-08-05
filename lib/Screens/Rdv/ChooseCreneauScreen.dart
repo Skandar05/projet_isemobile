@@ -888,12 +888,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                                   _selectedTeacherClassName,
                                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                                 ),
-                              const SizedBox(height: 4),
-                              if (_selectedTeacherParentName.isNotEmpty)
-                                Text(
-                                  'Responsable : $_selectedTeacherParentName',
-                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                ),
+                              
                             ],
                           ),
                         ),
@@ -1146,7 +1141,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                       controller: _motifController,
                       maxLines: 4,
                       decoration: InputDecoration(
-                        hintText: 'Résultats, comportement, orientation, réclamation...',
+                        hintText: 'Écrire le motif du rendez-vous...',
                         filled: true,
                         fillColor: const Color(0xffF5F7FB),
                         border: OutlineInputBorder(

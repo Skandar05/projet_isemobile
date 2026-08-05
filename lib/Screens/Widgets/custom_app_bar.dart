@@ -9,6 +9,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBackButton = false,
     this.showProfileButton = true,
     this.showTitle = true,
+    this.titleStyle,
   });
 
   final String title;
@@ -17,6 +18,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
   final bool showProfileButton;
   final bool showTitle;
+  final TextStyle? titleStyle;
 
   @override
   Size get preferredSize {
@@ -121,7 +123,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: titleStyle ?? TextStyle(
                       fontSize: media.textScaler.scale(24),
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF25324B),

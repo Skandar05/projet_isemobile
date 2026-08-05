@@ -13,6 +13,7 @@ class AppointmentCard extends StatelessWidget {
   final String? toName;
   final String? demandeurRole;
   final bool showPdIcon;
+  final bool useDemandeurRoleOnly;
   final VoidCallback? onTap;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
@@ -32,6 +33,7 @@ class AppointmentCard extends StatelessWidget {
     this.toName,
     this.demandeurRole,
     this.showPdIcon = false,
+    this.useDemandeurRoleOnly = false,
     this.onTap,
     this.onAccept,
     this.onReject,
@@ -83,20 +85,41 @@ class AppointmentCard extends StatelessWidget {
                         final from = (fromName ?? '').toLowerCase();
                         final to = (toName ?? '').toLowerCase();
                         final isRolePedagogique = role.contains('pedagogique') || role.contains('pd');
-                        final isFromPedagogique = from.contains('pedagogique') || from.contains('pd');
-                        final isToPedagogique = to.contains('pedagogique') || to.contains('pd');
                         final isRoleTeacher = role.contains('enseignant') || role.contains('teacher');
                         final isRoleParent = role.contains('parent');
-                        final isParentToPedagogique = isRoleParent && isToPedagogique;
+                        final isFromPedagogique = from.contains('pedagogique') || from.contains('pd');
+                        final isToPedagogique = to.contains('pedagogique') || to.contains('pd');
+                        final isFromTeacher = from.contains('enseignant') || from.contains('teacher');
+                        final isToTeacher = to.contains('enseignant') || to.contains('teacher');
+                        final isFromParent = from.contains('parent');
+                        final isToParent = to.contains('parent');
 
-                        String asset = 'lib/images/pdicon.png';
-                        if (isParentToPedagogique) {
-                          asset = 'lib/images/parenticon.png';
-                        } else if (isRolePedagogique || isFromPedagogique || isToPedagogique) {
+                        String asset;
+                        if (useDemandeurRoleOnly) {
+                          if (isRoleParent) {
+                            asset = 'lib/images/parenticon.png';
+                          } else if (isRolePedagogique) {
+                            asset = 'lib/images/pdicon.png';
+                          } else if (isRoleTeacher) {
+                            asset = 'lib/images/enseignanticon.png';
+                          } else {
+                            asset = 'lib/images/parenticon.png';
+                          }
+                        } else if (showPdIcon) {
                           asset = 'lib/images/pdicon.png';
-                        } else if (isRoleTeacher || from.contains('enseignant') || from.contains('teacher') || to.contains('enseignant') || to.contains('teacher')) {
+                        } else if (isRoleParent) {
+                          asset = 'lib/images/parenticon.png';
+                        } else if (isRolePedagogique) {
+                          asset = 'lib/images/pdicon.png';
+                        } else if (isRoleTeacher) {
                           asset = 'lib/images/enseignanticon.png';
-                        } else if (isRoleParent || from.contains('parent') || to.contains('parent')) {
+                        } else if (isFromTeacher || isToTeacher) {
+                          asset = 'lib/images/enseignanticon.png';
+                        } else if (isFromParent || isToParent) {
+                          asset = 'lib/images/parenticon.png';
+                        } else if (isFromPedagogique || isToPedagogique) {
+                          asset = 'lib/images/pdicon.png';
+                        } else {
                           asset = 'lib/images/parenticon.png';
                         }
 
