@@ -448,6 +448,29 @@ await showModalBottomSheet<void>(
 
                                 if (isPedagogique) {
                                   try {
+                                    // Prevent creating a pedagogique disponibilite for a day
+                                    // that the PD already has configured (unless editing
+                                    // the same record).
+                                    final jourExistePd = _pedagogiqueDisponibilites.any((d) {
+                                      if (isEditing) {
+                                        final existingId = d['iddisponibilites'] ?? d['id'];
+                                        final currentId = disponibilite?['iddisponibilites'] ?? disponibilite?['id'];
+                                        if (existingId != null && currentId != null && existingId == currentId) {
+                                          return false;
+                                        }
+                                      }
+
+                                      final dayStr = (d['jour'] ?? d['jourSemaine'] ?? d['day'] ?? '').toString().trim().toLowerCase();
+                                      return dayStr == selectedDay.trim().toLowerCase();
+                                    });
+
+                                    if (jourExistePd) {
+                                      setSheetState(() {
+                                        errorMessage = 'Vous avez déjà une disponibilité pour $selectedDay. Changez le jour.';
+                                      });
+
+                                      return;
+                                    }
                                     if (isEditing) {
                                       // Update existing pedagogique disponibilite
                                       await context.read<PdProvider>().updatedisponibility(
