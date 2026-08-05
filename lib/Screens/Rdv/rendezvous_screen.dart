@@ -625,7 +625,7 @@ Widget build(BuildContext context) {
 
       subtitle: _isTeacher
           ? "Gérer vos rendez-vous"
-          : "Créer un rendez-vous pédagogique",
+          : "Gérer Mes rendez-vous ",
 
       showBackButton: true,
     ),

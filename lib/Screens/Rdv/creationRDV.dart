@@ -64,34 +64,10 @@ class _ChooseContactScreenState extends State<ChooseContactScreen> {
 
           children: [
 
-            Padding(
-
-              padding:
-                  const EdgeInsets.symmetric(horizontal:20,vertical:20),
-
-              child: Row(
-
-                children:[
-
-                  _buildStep(1,true),
-
-                  _buildStepLine(),
-
-                  _buildStep(2,false),
-
-                  _buildStepLine(),
-
-                  _buildStep(3,false),
-
-                ],
-
-              ),
-
-            ),
 
 
 
-            const SizedBox(height:10),
+            const SizedBox(height:20),
 
 
 

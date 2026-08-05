@@ -15,7 +15,7 @@ appBar: const CustomAppBar(
     interfacePage: HomeParent(),
     showBackButton: true,
     title: "Type de rendez-vous",
-    subtitle: "a qui vous souhaitez prendre rendez-vous",
+    subtitle: "A qui vous souhaitez prendre rendez-vous",
   ),
       body: SafeArea(
         child: Padding(

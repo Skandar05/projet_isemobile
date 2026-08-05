@@ -45,13 +45,10 @@ List<Map<String, dynamic>> normalizeTeacherDisponibilitePayload(dynamic decoded)
             intervalMap['heureFin']?.toString() ??
             intervalMap['fin']?.toString() ??
             '';
-        final isAvailable = intervalMap['isAvailable'] is bool
-            ? intervalMap['isAvailable'] as bool
-            : intervalMap['available'] is bool
-                ? intervalMap['available'] as bool
-                : day['isAvailable'] is bool
-                    ? day['isAvailable'] as bool
-                    : true;
+        final dynamic rawAvail = intervalMap['isAvailable'] ?? intervalMap['available'] ?? day['isAvailable'];
+        final bool isAvailable = (rawAvail is bool && rawAvail == true) ||
+          (rawAvail is int && rawAvail == 1) ||
+          (rawAvail is String && (rawAvail == '1' || rawAvail.toLowerCase() == 'true'));
 
         flattened.add({
           ...day,
@@ -80,11 +77,10 @@ List<Map<String, dynamic>> normalizeTeacherDisponibilitePayload(dynamic decoded)
         day['heureFin']?.toString() ??
         day['fin']?.toString() ??
         '';
-    final isAvailable = day['isAvailable'] is bool
-        ? day['isAvailable'] as bool
-        : day['available'] is bool
-            ? day['available'] as bool
-            : true;
+    final dynamic rawAvailDay = day['isAvailable'] ?? day['available'];
+    final bool isAvailable = (rawAvailDay is bool && rawAvailDay == true) ||
+      (rawAvailDay is int && rawAvailDay == 1) ||
+      (rawAvailDay is String && (rawAvailDay == '1' || rawAvailDay.toLowerCase() == 'true'));
 
     flattened.add({
       ...day,

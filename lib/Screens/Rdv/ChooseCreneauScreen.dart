@@ -427,6 +427,13 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
           
           if (day.isEmpty) continue;
 
+            // respect availability flag from payload: skip intervals not available
+            final rawAvail = slot['isAvailable'];
+            final bool slotAvailable = (rawAvail is bool && rawAvail == true) ||
+              (rawAvail is int && rawAvail == 1) ||
+              (rawAvail is String && (rawAvail == '1' || rawAvail.toLowerCase() == 'true'));
+            if (!slotAvailable) continue;
+
           if (!availableDays.contains(day)) {
             availableDays.add(day);
           }
@@ -438,6 +445,10 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
             final slotKey = '$day|$startTime|$endTime';
             if (!slotKeys.contains(slotKey)) {
               slotKeys.add(slotKey);
+              final dynamic rawAvailable = slot['isAvailable'];
+              final bool isAvailable = (rawAvailable is bool && rawAvailable == true) ||
+                  (rawAvailable is int && rawAvailable == 1) ||
+                  (rawAvailable is String && (rawAvailable == '1' || rawAvailable.toLowerCase() == 'true'));
               allSlots.add({
                 'jour': day,
                 'start': startTime,
@@ -445,7 +456,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
                 'time': slot['time']?.toString() ?? '$startTime - $endTime',
                 'iddisponibilites': slot['iddisponibilites']?.toString() ?? '',
                 'id': slot['id']?.toString() ?? '',
-                
+                'isAvailable': isAvailable.toString(),
               });
             }
           }
@@ -623,6 +634,11 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
           final key = '$dateStrApi|${slot['start']}|${slot['end']}';
           if (!dateSlotKeys.contains(key)) {
             dateSlotKeys.add(key);
+            final dynamic rawAvail2 = slot['isAvailable'];
+            final bool isAvailable2 = (rawAvail2 is bool && rawAvail2 == true) ||
+                (rawAvail2 is int && rawAvail2 == 1) ||
+                (rawAvail2 is String && (rawAvail2 == '1' || rawAvail2.toLowerCase() == 'true'));
+
             allDateSlots.add({
               'label': label,
               'value': dateStrApi,
@@ -634,6 +650,7 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
               // include ids from the original slot entry so filteredSlots carry them
               'iddisponibilites': slot['iddisponibilites']?.toString() ?? slot['iddisponibilites'] ?? '',
               'id': slot['id']?.toString() ?? slot['id'] ?? '',
+              'isAvailable': isAvailable2.toString(),
             });
           }
         }
@@ -685,8 +702,8 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
         preferredSize: const Size.fromHeight(200),
         child: CustomAppBar(
           interfacePage: widget.isTeacher ? const HomeEnseignant() : const HomeParent(),
-          title:  "Choisir un créneau",
-          subtitle: "selectionnez un créneau pour continuer",
+          title:  "Prise de rendez-vous",
+          subtitle: "Remplissez les informations du rendez-vous.",
           showBackButton: true,
         ),
       ),
@@ -1024,79 +1041,97 @@ class _ChooseCreneauScreenState extends State<ChooseCreneauScreen> with WidgetsB
 
                 const SizedBox(height: 10),
 
-                SizedBox(
-                  height: 150,
-                  
-                  child: filteredSlots.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              selectedDayIndex == null
-                                  ? 'Sélectionnez une date pour voir les créneaux disponibles.'
-                                  : 'Aucun créneau disponible pour cette date.',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.grey),
-                            ),
+                // Show either the empty-message or a non-scrollable grid that
+                // expands to fit its content so the outer `SingleChildScrollView`
+                // handles all vertical scrolling.
+                filteredSlots.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            selectedDayIndex == null
+                                ? 'Sélectionnez une date pour voir les créneaux disponibles.'
+                                : 'Aucun créneau disponible pour cette date.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.grey),
                           ),
-                        )
-                      : GridView.builder(
-                          itemCount: filteredSlots.length,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 3,
-                            crossAxisSpacing: 15,
-                            mainAxisSpacing: 15,
-                          ),
-                          itemBuilder: (context, index) {
-                            final slot = filteredSlots[index];
-                            final isSelected = selectedSlotIndex == index;
+                        ),
+                      )
+                    : GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: filteredSlots.length,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 3,
+                          crossAxisSpacing: 15,
+                          mainAxisSpacing: 15,
+                        ),
+                        itemBuilder: (context, index) {
+                          final slot = filteredSlots[index];
+                          final isSelected = selectedSlotIndex == index;
 
-                            return GestureDetector(
-                              onTap: selectedDayIndex != null
-                                  ? () {
-                                      final slot = filteredSlots[index];
-                                      setState(() {
-                                        selectedSlotIndex = index;
-                                        // capture selected time and ids immediately
-                                        selectedTimeValue = slot['time'] ?? '';
-                                        iddispo = slot['iddisponibilites']?.toString() ?? '';
-                                        idinterval = slot['id']?.toString() ?? '';
-                                      });
+                          return GestureDetector(
+                            onTap: selectedDayIndex != null
+                                ? () {
+                                    final slot = filteredSlots[index];
+                                    final dynamic rawAvail = slot['isAvailable'];
+                                    final bool available = (rawAvail is bool && rawAvail == true) ||
+                                        (rawAvail is int && rawAvail == 1) ||
+                                        (rawAvail is String &&
+                                            (rawAvail == '1' || rawAvail.toLowerCase() == 'true'));
+                                    if (!available) return; // don't allow selecting unavailable slots
 
-                                      debugPrint('Selected date: $selectedDateDisplay ($selectedDateValue)');
-                                      debugPrint('Selected slot time: $selectedTimeValue');
-                                      debugPrint('Selected iddispo: $iddispo');
-                                      debugPrint('Selected idinterval: $idinterval');
+                                    setState(() {
+                                      selectedSlotIndex = index;
+                                      // capture selected time and ids immediately
+                                      selectedTimeValue = slot['time'] ?? '';
+                                      iddispo = slot['iddisponibilites']?.toString() ?? '';
+                                      idinterval = slot['id']?.toString() ?? '';
+                                    });
 
-                                      _updateCanSend();
-                                    }
-                                  : null,
-                              child: Container(
-                               
-                                decoration: BoxDecoration(
-                                  
-                                  color: isSelected ? const Color(0xff1F4B8F) : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSelected ? Colors.blue : Colors.grey.shade300,
-                                  ),
-                                ),
-                                child: Center(
-                          
-                                  child: Text(
-                                    slot['time'] ?? '',
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.white : Colors.black,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                                    debugPrint('Selected date: $selectedDateDisplay ($selectedDateValue)');
+                                    debugPrint('Selected slot time: $selectedTimeValue');
+                                    debugPrint('Selected iddispo: $iddispo');
+                                    debugPrint('Selected idinterval: $idinterval');
+
+                                    _updateCanSend();
+                                  }
+                                : null,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xff1F4B8F) : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? Colors.blue : Colors.grey.shade300,
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                ),
+                              child: Center(
+                                child: Builder(
+                                  builder: (_) {
+                                    final dynamic rawAvail = slot['isAvailable'];
+                                    final bool available = (rawAvail is bool && rawAvail == true) ||
+                                        (rawAvail is int && rawAvail == 1) ||
+                                        (rawAvail is String &&
+                                            (rawAvail == '1' || rawAvail.toLowerCase() == 'true'));
+                                    final textColor = isSelected
+                                        ? Colors.white
+                                        : (available ? Colors.black : Colors.grey);
+
+                                    return Text(
+                                      slot['time'] ?? '',
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ],
 
               Container(
