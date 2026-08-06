@@ -108,6 +108,8 @@ class _Pd_rendezvous_screenState extends State<Pd_rendezvous_screen> {
   final List<String> _statusFilters = ['Tous', 'En attente', 'Acceptés', 'Reportés'];
   List<Map<String, dynamic>> RdvPD = [];
   String namepd = '';
+  int _currentPedagogiqueId = 0;
+  final Map<String, String> _pedagogiqueNameCache = {};
 
   Map<String, String> rdvCounts = {};
 
@@ -121,9 +123,7 @@ class _Pd_rendezvous_screenState extends State<Pd_rendezvous_screen> {
 Future<List<Map<String, dynamic>>> GetPdRdv() async {
   final preferences = await SharedPreferences.getInstance();
   final idPd = preferences.getInt('idPd') ?? 0;
-  final pdProvider = context.read<PdProvider>();
-  RdvPD = await pdProvider.GetPdRdv(idPd);
-  namepd = await getPdname(idPd);
+  _currentPedagogiqueId = idPd;
   return RdvPD;
 }
 
@@ -137,29 +137,34 @@ Future<void> _loadPedagogiqueRdvs() async {
   if (!mounted) return;
 
   setState(() => _isLoading = true);
-  
+
   try {
     final loadedRdvs = await GetPdRdv();
 
     if (!mounted) return;
 
+    final normalizedRdvs = normalizeRdvs(loadedRdvs);
+    await _prefetchPedagogiqueNames(normalizedRdvs);
+
+    normalizedRdvs.sort((a, b) {
+      final idA = a['id'] ?? a['idRdv'] ?? a['id_rdv'];
+      final idB = b['id'] ?? b['idRdv'] ?? b['id_rdv'];
+
+      if (idA is num && idB is num) {
+        return idB.compareTo(idA);
+      }
+
+      if (idA != null && idB != null) {
+        return idB.toString().compareTo(idA.toString());
+      }
+
+      return 0;
+    });
+
+    if (!mounted) return;
+
     setState(() {
-      RdvPD = normalizeRdvs(loadedRdvs);
-      RdvPD.sort((a, b) {
-        final idA = a['id'] ?? a['idRdv'] ?? a['id_rdv'];
-        final idB = b['id'] ?? b['idRdv'] ?? b['id_rdv'];
-
-        if (idA is num && idB is num) {
-          return idB.compareTo(idA);
-        }
-
-        if (idA != null && idB != null) {
-          return idB.toString().compareTo(idA.toString());
-        }
-
-        return 0;
-      });
-
+      RdvPD = normalizedRdvs;
       _rdvsByRole['Pedagogique'] = List<Map<String, dynamic>>.from(RdvPD);
 
       if (_isselected == 'Pedagogique') {
@@ -422,6 +427,49 @@ Future<void> loadCounts() async {
     return '$start - $end'.trim();
   }
 
+  Future<void> _prefetchPedagogiqueNames(List<Map<String, dynamic>> rdvs) async {
+    final idsToFetch = <String>{};
+
+    for (final rdv in rdvs) {
+      final pedagogueId = _extractText(rdv, [
+        'pedagogiqueId',
+        'idpedagogique',
+        'idPedagogique',
+        'pedagogique_id',
+        'idPd',
+        'idpd',
+      ]);
+      if (pedagogueId.isNotEmpty && !_pedagogiqueNameCache.containsKey(pedagogueId)) {
+        idsToFetch.add(pedagogueId);
+      }
+    }
+
+    if (idsToFetch.isEmpty) {
+      return;
+    }
+
+    final pdProvider = context.read<PdProvider>();
+    final fetched = <String, String>{};
+
+    for (final id in idsToFetch) {
+      final idValue = int.tryParse(id) ?? 0;
+      if (idValue <= 0) {
+        continue;
+      }
+      final name = await pdProvider.getPedagogiqueName(idValue);
+      debugPrint('Pd_rendezvous_screen: fetched pedagogique name for id=$idValue => "$name"');
+      if (name.isNotEmpty) {
+        fetched[id] = name;
+      }
+    }
+
+    if (fetched.isNotEmpty && mounted) {
+      setState(() {
+        _pedagogiqueNameCache.addAll(fetched);
+      });
+    }
+  }
+
   bool _isParentRequest(Map<String, dynamic> rdv) {
     final demandeurRole = (rdv['demandeur_role'] ?? rdv['demandeurRole'] ?? '')
         .toString()
@@ -430,7 +478,12 @@ Future<void> loadCounts() async {
   }
 
   bool _hasPedagogiqueOwner(Map<String, dynamic> rdv) {
-    final pedagogiqueId = rdv['pedagogiqueId'] ?? rdv['idpedagogique'] ?? rdv['pedagogique_id'];
+    final pedagogiqueId = rdv['pedagogiqueId'] ??
+        rdv['idpedagogique'] ??
+        rdv['idPedagogique'] ??
+        rdv['pedagogique_id'] ??
+        rdv['idPd'] ??
+        rdv['idpd'];
     final pedagogiqueName = _pedagogiqueName(rdv);
     final hasPedagogiqueId = pedagogiqueId != null && pedagogiqueId.toString().trim().isNotEmpty;
     final hasPedagogiqueName = pedagogiqueName.isNotEmpty && pedagogiqueName != 'Pédagogique';
@@ -602,6 +655,9 @@ Future<void> loadCounts() async {
       'pedagogiquePrenomfr',
       'prenomPedagogique',
       'prenom_pedagogique',
+      'prenomPD',
+      'prenom_pd',
+      'pdPrenom',
       'firstName',
       'prenom',
     ]);
@@ -610,6 +666,9 @@ Future<void> loadCounts() async {
       'pedagogiqueNomfr',
       'nomPedagogique',
       'nom_pedagogique',
+      'nomPD',
+      'nom_pd',
+      'pdNom',
       'lastName',
       'nom',
     ]);
@@ -618,15 +677,44 @@ Future<void> loadCounts() async {
     if (fullName.isNotEmpty) {
       return fullName;
     }
-    
+
+    final pedagogiqueId = _extractText(rdv, [
+      'pedagogiqueId',
+      'idpedagogique',
+      'idPedagogique',
+      'pedagogique_id',
+      'idPd',
+      'idpd',
+    ]);
+    if (pedagogiqueId.isNotEmpty) {
+      final cachedName = _pedagogiqueNameCache[pedagogiqueId];
+      if (cachedName != null && cachedName.isNotEmpty) {
+        return cachedName;
+      }
+      final idValue = int.tryParse(pedagogiqueId) ?? 0;
+      if (idValue > 0 && idValue == _currentPedagogiqueId && namepd.isNotEmpty) {
+        return namepd;
+      }
+    } else if (namepd.isNotEmpty) {
+      return namepd;
+    }
+
     final name = _extractText(rdv, [
       'nom_pedagogique',
       'nomPedagogique',
       'nom_pc',
       'nomPC',
+      'nomPD',
+      'nom_pd',
       'pedagogiquePrenomfr',
       'pedagogiqueNomfr',
       'prenomPedagogique',
+      'prenom_pedagogique',
+      'pdPrenom',
+      'pdNom',
+      'contactName',
+      'nom_contact',
+      'nomContact',
     ]);
     return name.isNotEmpty ? name : "";
   }
@@ -652,7 +740,9 @@ Future<void> loadCounts() async {
       return _parentName(rdv);
     }
     if (demandeurRole.contains('pedagogique')) {
-      return _pedagogiqueName(rdv);
+      final pedagogique = _pedagogiqueName(rdv);
+      if (pedagogique.isNotEmpty) return pedagogique;
+      return _teacherName(rdv);
     }
     if (demandeurRole.contains('enseignant') ||
         demandeurRole.contains('teacher')) {
@@ -678,7 +768,21 @@ Future<void> loadCounts() async {
         return pedagogique;
       }
       final teacher = _teacherName(rdv);
-      return teacher.isNotEmpty ? teacher : 'Pédagogique';
+      if (teacher.isNotEmpty) {
+        return teacher;
+      }
+      final pedagogiqueId = _extractText(rdv, [
+        'pedagogiqueId',
+        'idpedagogique',
+        'idPedagogique',
+        'pedagogique_id',
+        'idPd',
+        'idpd',
+      ]);
+      if (pedagogiqueId.isNotEmpty) {
+        return 'Pédagogique (#$pedagogiqueId)';
+      }
+      return 'Pédagogique';
     }
     if (demandeurRole.contains('pedagogique')) {
       final parent = _parentName(rdv);
